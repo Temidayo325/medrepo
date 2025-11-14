@@ -48,5 +48,5 @@ dev_dependencies:
 flutter:
   assets:
     - assets/
-  
+    - assets/dosage_form/
   uses-material-design: true

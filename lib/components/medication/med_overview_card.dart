@@ -1,65 +1,95 @@
 import 'package:flutter/material.dart';
 
 class IconTextCard extends StatelessWidget {
-  final String name;        // Bold text
-  final String duration;     // Smaller text
-  final String form;        
+  final String name;
+  final String duration;
+  final String form;
+  final String durationOfTherapy;
+  final int? quantity; // optional
+  final VoidCallback? onTap;
 
   const IconTextCard({
     Key? key,
     required this.name,
     required this.duration,
     required this.form,
+    required this.durationOfTherapy,
+    this.quantity,
+    this.onTap,
   }) : super(key: key);
 
-  IconData getDosageFormIcon(String form) {
-    switch (form.toLowerCase()) {
-      case 'tablet':
-        return Icons.medication_rounded;
-      case 'injection':
-        return Icons.vaccines_rounded;
-      case 'capsule':
-        return Icons.local_pharmacy_rounded;
-      case 'syrup':
-        return Icons.local_drink_rounded;
-      case 'ointment':
-        return Icons.science_rounded;
-      default:
-        return Icons.health_and_safety_rounded;
-    }
-  }
+  /// Returns an Image widget based on the dosage form
+  Widget getDosageFormImage(String form) {
+    final formLower = form.toLowerCase();
+    String assetPath;
 
+    switch (formLower) {
+      case 'tablet':
+        assetPath = 'assets/dosage_form/tablet.png';
+        break;
+      case 'injection':
+        assetPath = 'assets/dosage_form/injection.png';
+        break;
+      case 'capsule':
+        assetPath = 'assets/dosage_form/capsule.png';
+        break;
+      case 'syrup':
+        assetPath = 'assets/dosage_form/syrup.png';
+        break;
+      case 'ointment':
+        assetPath = 'assets/dosage_form/ointment.png';
+        break;
+      default:
+        assetPath = 'assets/dosage_form/tablet.png';
+    }
+
+    return Image.asset(
+      assetPath,
+      width: 40,
+      height: 40,
+      fit: BoxFit.contain,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          getDosageFormIcon(form),
-          size: 40,
-          color: Colors.blueGrey.shade700,
+    return InkWell(
+      onTap: onTap,   // pass modal trigger here
+      borderRadius: BorderRadius.circular(12),
+      splashColor: Colors.blueGrey.withOpacity(0.1),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
         ),
-        SizedBox(height: 8),
-        Text(
-          name,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Colors.blueGrey.shade800,
-          ),
-          textAlign: TextAlign.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            getDosageFormImage(form), // <-- now uses image
+            const SizedBox(height: 8),
+            Text(
+              name,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: Colors.blueGrey.shade800,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              duration,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.blueGrey.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        SizedBox(height: 4),
-        Text(
-          duration,
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.blueGrey.shade600,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 }
