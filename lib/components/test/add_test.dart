@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 class AddTestBottomSheet extends StatefulWidget {
-  const AddTestBottomSheet({super.key});
+  final Map<String, dynamic>? existingTest; // for editing
+  final dynamic hiveKey; // key of the test in Hive
+
+  const AddTestBottomSheet({super.key, this.existingTest, this.hiveKey});
 
   @override
   State<AddTestBottomSheet> createState() => _AddTestBottomSheetState();
@@ -16,18 +19,30 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
   final TextEditingController unitController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
 
+  bool isEditing = false;
+
   @override
   void initState() {
     super.initState();
-    // Default to today
-    final now = DateTime.now();
-    dateController.text =
-        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    if (widget.existingTest != null) {
+      isEditing = true;
+      // populate fields with existing values
+      testController.text = widget.existingTest!['test'] ?? '';
+      resultController.text = widget.existingTest!['result'] ?? '';
+      unitController.text = widget.existingTest!['unit'] ?? '';
+      dateController.text = widget.existingTest!['date'] ?? '';
+    } else {
+      // default to today
+      final now = DateTime.now();
+      dateController.text =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    }
   }
 
   void _saveTest({bool closeAfterSave = false}) async {
     if (_formKey.currentState!.validate()) {
-      // Show loading modal
+      // Show loader
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -49,35 +64,40 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
         final box = Hive.box('tests');
         final now = DateTime.now();
 
-        final newTest = {
+        final testData = {
           "test": testController.text.trim(),
           "result": resultController.text.trim(),
           "unit": unitController.text.trim(),
           "date": dateController.text.trim(),
-          "timestamp": now.toIso8601String(), // full timestamp
+          "timestamp": now.toIso8601String(),
         };
 
-        await box.add(newTest);
+        if (isEditing && widget.hiveKey != null) {
+          // update existing entry
+          await box.put(widget.hiveKey, testData);
+        } else {
+          // add new entry
+          await box.add(testData);
+        }
 
-        // Close loader
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(); // close loader
 
-        // Show success notification
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Test added successfully!"),
+          SnackBar(
+            content: Text(isEditing ? "Test updated successfully!" : "Test added successfully!"),
             behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
 
         if (closeAfterSave) {
-          Navigator.pop(context); // Close bottom sheet
-        } else {
-          // Reset form for rapid entry
+          Navigator.pop(context); // close bottom sheet
+        } else if (!isEditing) {
+          // reset for rapid entry only for new tests
           testController.clear();
           resultController.clear();
           unitController.clear();
+          final now = DateTime.now();
           dateController.text =
               "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
         }
@@ -110,7 +130,6 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// --- DRAG HANDLE ---
               Center(
                 child: Container(
                   width: 70,
@@ -122,10 +141,8 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                   ),
                 ),
               ),
-
-              /// --- Title ---
               Text(
-                "Add New Test",
+                isEditing ? "Edit Test" : "Add New Test",
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -133,32 +150,24 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                 ),
               ),
               const SizedBox(height: 30),
-
-              /// --- Test Name ---
               TextFormField(
                 controller: testController,
                 decoration: const InputDecoration(
                   labelText: "Test Name",
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Test name is required" : null,
+                validator: (value) => value == null || value.isEmpty ? "Test name is required" : null,
               ),
               const SizedBox(height: 18),
-
-              /// --- Result ---
               TextFormField(
                 controller: resultController,
                 decoration: const InputDecoration(
                   labelText: "Result",
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Result is required" : null,
+                validator: (value) => value == null || value.isEmpty ? "Result is required" : null,
               ),
               const SizedBox(height: 18),
-
-              /// --- Unit (optional) ---
               TextFormField(
                 controller: unitController,
                 decoration: const InputDecoration(
@@ -167,8 +176,6 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                 ),
               ),
               const SizedBox(height: 18),
-
-              /// --- Date picker ---
               TextFormField(
                 controller: dateController,
                 readOnly: true,
@@ -177,8 +184,7 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                   border: OutlineInputBorder(),
                   suffixIcon: Icon(Icons.calendar_month),
                 ),
-                validator: (value) =>
-                    value == null || value.isEmpty ? "Test date is required" : null,
+                validator: (value) => value == null || value.isEmpty ? "Test date is required" : null,
                 onTap: () async {
                   DateTime initialDate = DateTime.tryParse(dateController.text) ?? DateTime.now();
 
@@ -196,22 +202,18 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                 },
               ),
               const SizedBox(height: 20),
-
-              /// --- Save Buttons ---
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.white, // button fill color
+                        backgroundColor: Colors.white,
                         side: BorderSide(color: Colors.blueGrey, width: 2),
                       ),
                       onPressed: () => _saveTest(closeAfterSave: false),
-                      child: const Text(
-                        "Save & Add Another",
-                        style: TextStyle(color: Colors.blueGrey, fontSize: 16),
-                      ),
+                      child: Text(isEditing ? "Update & Continue" : "Save & Add Another",
+                          style: TextStyle(color: Colors.blueGrey, fontSize: 16)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -222,10 +224,8 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       onPressed: () => _saveTest(closeAfterSave: true),
-                      child: const Text(
-                        "Save & Close",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
+                      child: Text(isEditing ? "Update & Close" : "Save & Close",
+                          style: const TextStyle(color: Colors.white, fontSize: 16)),
                     ),
                   ),
                 ],

@@ -17,17 +17,20 @@ class TestResultsPage extends StatelessWidget {
     return Icons.science_rounded;
   }
 
-  void _openAddTestSheet(BuildContext context) {
+  void _openAddTestSheet(BuildContext context, {Map<String, dynamic>? existingTest, dynamic hiveKey}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => AddTestBottomSheet(),
+      builder: (_) => AddTestBottomSheet(
+        existingTest: existingTest,
+        hiveKey: hiveKey,
+      ),
     );
   }
-
+  
   @override
   Widget build(BuildContext context) {
     final box = Hive.box('tests');
@@ -39,7 +42,6 @@ class TestResultsPage extends StatelessWidget {
         colors: Colors.white,
         backgroundColor: Colors.blueGrey,
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ValueListenableBuilder(
@@ -47,63 +49,107 @@ class TestResultsPage extends StatelessWidget {
           builder: (context, Box testBox, _) {
             final testResults = testBox.values.toList().cast<Map>();
 
-            // Sort by timestamp descending (newest first)
+            // Sort by timestamp descending
             testResults.sort((a, b) {
               final tsA = DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime(2000);
               final tsB = DateTime.tryParse(b['timestamp'] ?? '') ?? DateTime(2000);
               return tsB.compareTo(tsA);
             });
 
-            // Empty state
-            if (testResults.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.science_rounded, size: 80, color: Colors.blueGrey.shade200),
-                    const SizedBox(height: 10),
-                    Text(
-                      "No tests added yet",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blueGrey.shade700,
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 400),
+              switchInCurve: Curves.easeOut,
+              switchOutCurve: Curves.easeIn,
+              child: testResults.isEmpty
+                  ? Center(
+                      key: const ValueKey('empty_state'),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.science_rounded, size: 80, color: Colors.blueGrey.shade200),
+                          const SizedBox(height: 10),
+                          Text(
+                            "No tests added yet",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blueGrey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: () => _openAddTestSheet(context),
+                            icon: const Icon(Icons.add, color: Colors.white, size: 25),
+                            label: const Text("Add New Test", style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blueGrey,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => _openAddTestSheet(context),
-                      icon: const Icon(Icons.add, color: Colors.white, size: 25,),
-                      label: Text("Add New Test", style: TextStyle(color: Colors.white),),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueGrey,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
+                    )
+                  : ListView.builder(
+                      key: const ValueKey('list_view'),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: testResults.length,
+                      itemBuilder: (context, index) {
+                        final item = testResults[index];
+                        final key = testBox.keyAt(index);
 
-            // Show list of tests
-            return ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              itemCount: testResults.length,
-              itemBuilder: (context, index) {
-                final item = testResults[index];
-                return TestCard(
-                  test: item['test']!,
-                  result: item['result']!,
-                  date: item['date']!,
-                  icon: getTestIcon(item['test']!),
-                  unit: item['unit']!,
-                );
-              },
+                        return Dismissible(
+                          key: Key(key.toString()),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            color: Colors.red,
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          confirmDismiss: (direction) async {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: Text("Delete Test", style: TextStyle(color: Colors.blueGrey)),
+                                content: Text("Are you sure you want to delete this test?", style: TextStyle(color: Colors.blueGrey),),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, false),
+                                    child: Text("Cancel", style: TextStyle(color: Colors.blueGrey),),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context, true),
+                                    child: Text("Delete", style: TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            return confirmed ?? false;
+                          },
+                          onDismissed: (direction) async {
+                            await testBox.delete(key);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Test deleted successfully!")),
+                            );
+                          },
+                          child: AnimatedContainer(
+                            duration: Duration(milliseconds: 400),
+                            curve: Curves.easeOut,
+                            child: TestCard(
+                              test: item['test']!,
+                              result: item['result']!,
+                              date: item['date']!,
+                              unit: item['unit']!,
+                              icon: getTestIcon(item['test']!), 
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             );
           },
         ),
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blueGrey,
         onPressed: () => _openAddTestSheet(context),
