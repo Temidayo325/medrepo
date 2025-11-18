@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 class TimeFilterRow extends StatefulWidget {
+  final ValueChanged<String> onFilterSelected;
+
+  const TimeFilterRow({Key? key, required this.onFilterSelected})
+      : super(key: key);
+
   @override
   _TimeFilterRowState createState() => _TimeFilterRowState();
 }
@@ -22,6 +27,7 @@ class _TimeFilterRowState extends State<TimeFilterRow> {
             setState(() {
               selectedIndex = index;
             });
+            widget.onFilterSelected(options[index]);
           },
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),

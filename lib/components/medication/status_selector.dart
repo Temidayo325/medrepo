@@ -1,49 +1,56 @@
 import 'package:flutter/material.dart';
 
-class WeekSelector extends StatefulWidget {
+class StatusSelector extends StatefulWidget {
+  final Function(String) onStatusSelected;
+
+  StatusSelector({required this.onStatusSelected});
+
   @override
-  _WeekSelectorState createState() => _WeekSelectorState();
+  _StatusSelectorState createState() => _StatusSelectorState();
 }
 
-class _WeekSelectorState extends State<WeekSelector> {
-  final List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  int selectedIndex = 0; // tracks the currently selected day
+class _StatusSelectorState extends State<StatusSelector> {
+  final List<String> statuses = ['All', 'Active', 'Completed'];
+  int selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 70,
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 30),
-      color: Colors.blueGrey.shade100, // enough height for the text
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      color: Colors.blueGrey.shade100, // fully transparent background
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: List.generate(days.length, (index) {
+          children: List.generate(statuses.length, (index) {
             final isSelected = selectedIndex == index;
+
             return GestureDetector(
               onTap: () {
                 setState(() {
                   selectedIndex = index;
                 });
+                widget.onStatusSelected(statuses[index]);
               },
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 10),
                 alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                 child: Text(
-                  days[index],
+                  statuses[index],
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: isSelected ? 20 : 18,
+                    fontSize: isSelected ? 20 : 20,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: Colors.blueGrey.shade900,
+                    color: isSelected ? Colors.blueGrey.shade700 : Colors.blueGrey.shade900,
                     shadows: isSelected
                         ? [
                             Shadow(
-                              color: Colors.grey.shade400,
-                              blurRadius: 3,
+                              color: Colors.black45,
                               offset: Offset(0, 1),
-                            ),
+                              blurRadius: 1,
+                            )
                           ]
                         : [],
                   ),

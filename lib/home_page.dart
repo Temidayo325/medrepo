@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
 import 'package:flutter_svg/flutter_svg.dart';
 import 'components/app_title.dart';
 
@@ -10,9 +12,21 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
 
-      appBar: CustomAppBar(
-        title: 'Hello Opeyemi',
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(100),
+        child: ValueListenableBuilder(
+          valueListenable: Hive.box('profile').listenable(),
+          builder: (context, box, _) {
+            final profile = box.get('profile', defaultValue: {});
+            final firstName = (profile["name"] ?? "").trim().split(" ").first;
+
+            return CustomAppBar(
+              title: "Hello $firstName",      // <-- AUTOMATICALLY UPDATES
+              colors: Colors.blueGrey,   // optional
+            );
+          },
         ),
+      ),
 
       // 🌿 BODY
       body: SingleChildScrollView(

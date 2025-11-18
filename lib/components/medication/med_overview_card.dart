@@ -7,6 +7,7 @@ class IconTextCard extends StatelessWidget {
   final String durationOfTherapy;
   final int? quantity; // optional
   final VoidCallback? onTap;
+  final Widget? trailing;
 
   const IconTextCard({
     Key? key,
@@ -16,6 +17,7 @@ class IconTextCard extends StatelessWidget {
     required this.durationOfTherapy,
     this.quantity,
     this.onTap,
+    this.trailing,
   }) : super(key: key);
 
   /// Returns an Image widget based on the dosage form
