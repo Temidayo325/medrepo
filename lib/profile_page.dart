@@ -1,103 +1,235 @@
 import 'package:flutter/material.dart';
-import 'components/profile_picure.dart';
-import 'components/profile_info.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-class ProfilePage extends StatelessWidget
-{
+import 'components/profile/profile_picure.dart';
+import 'components/profile/profile_info.dart';
+import 'components/profile/add_emergency_contact.dart';
+import 'components/profile/edit_profile.dart';
+
+class ProfilePage extends StatelessWidget {
+  ProfilePage({super.key});
+
+  final Map<String, dynamic> defaultContacts = {
+    'contact1': {'name': '', 'phone': '', 'email': ''},
+    'contact2': {'name': '', 'phone': '', 'email': ''},
+  };
+
+  final Map<String, dynamic> defaultProfile = {
+      "name": "",
+      "age": "",
+      "gender": "",
+      "phone": "",
+      "email": "",
+      "bloodGroup": "",
+      "genotype": "",
+      "bmi": "",
+      "conditions": "",
+    };
+
   @override
-  Widget build(BuildContext context)
-  {
+  Widget build(BuildContext context) {
+    final emergencyBox = Hive.box('emergencyContacts');
+    final profileBox = Hive.box('profile');
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 80,
-        leading: Icon(Icons.arrow_back, color: Colors.blueGrey.shade800, size: 25,),
+        toolbarHeight: 90,
+        leading: Icon(Icons.arrow_back, color: Colors.blueGrey.shade800, size: 25),
         centerTitle: true,
-        title: Text('Profile',style: TextStyle(fontSize: 25, color: Colors.blueGrey, fontWeight: FontWeight.bold, decoration: TextDecoration.none,))
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            fontSize: 25,
+            color: Colors.blueGrey,
+            fontWeight: FontWeight.bold,
+            decoration: TextDecoration.none,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => showEditProfileBottomSheet(context),
+            child: const Text(
+              "Edit",
+              style: TextStyle(
+                color: Colors.blueGrey,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
+        ],
       ),
-      body: Column(
-        children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(height: 10,),
-              ProfileAvatar(),
-              SizedBox(height: 15),
-              Text('Opeyemi Temidayo', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.blueGrey.shade800,),),
-              SizedBox(height: 15),
-            ],
-          ),
-          SizedBox(height: 10,),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.all(10), // inner spacing
-                  margin: EdgeInsets.symmetric(horizontal: 15), // outer spacing
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+
+      body: ValueListenableBuilder(
+        valueListenable: profileBox.listenable(),
+        builder: (context, box, _) {
+          final raw = box.get("profile", defaultValue: defaultProfile);
+
+          /// --- Normalize values to avoid null ---
+          final profile = Map<String, dynamic>.from(raw)
+            .map((key, value) => MapEntry(key, value ?? ""));
+
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+
+                  /// Avatar
+                  ProfileAvatar(),
+                  SizedBox(height: 15),
+
+                  /// Name
+                  Text(
+                    profile["name"].toString().isEmpty
+                        ? "No name"
+                        : profile["name"],
+                    style: TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey.shade800,
+                    ),
+                  ),
+
+                  SizedBox(height: 25),
+
+                  /// PROFILE INFO
+                  Row(
                     children: [
-                      Text('Male, 30 yo', style: TextStyle(fontSize: 17, color: Colors.black, letterSpacing: 1.2 ),),
-                      SizedBox(height: 2,),
-                      Text('+2347060681466', style: TextStyle(fontSize: 17, color: Colors.black, letterSpacing: 1.2)),
-                      Text('temi325@gmail.com', style: TextStyle(fontSize: 17, color: Colors.black)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              "${profile['age']} yo, ${profile['gender']}",
+                              style: TextStyle(fontSize: 17),
+                            ),
+                            SizedBox(height: 3),
+                            Text("${profile['phone']}", style: TextStyle(fontSize: 17)),
+                            Text("${profile['email']}", style: TextStyle(fontSize: 17)),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 30),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "${profile['bloodGroup']}, ${profile['genotype']}, BMI: ${profile['bmi']}",
+                              style: TextStyle(fontSize: 17),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              "Hgt: ${profile['height']}cm, Wgt: ${profile['weight']} kg",
+                              style: TextStyle(fontSize: 17),
+                            ),
+                            SizedBox(height: 2,),
+                            Text(
+                              "Chronic: ${profile['conditions']}",
+                              style: TextStyle(fontSize: 17),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ),
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.all(12), // inner spacing
-                  margin: EdgeInsets.symmetric(horizontal: 15), // outer spacing
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('O+, AA, BMI: 25kg', style: TextStyle(fontSize: 17, color: Colors.black, letterSpacing: 1.2 ),),
-                      SizedBox(height: 2,),
-                      // Text('hgt:160cm, Wgt:55kg', style: TextStyle(fontSize: 14, color: Colors.black, letterSpacing: 1)),
-                      Text('Chronic conditions: None', style: TextStyle(fontSize: 17, color: Colors.black)),
-                    ],
+
+                  SizedBox(height: 20),
+
+                  /// EMERGENCY CONTACTS
+                  ValueListenableBuilder(
+                    valueListenable: emergencyBox.listenable(),
+                    builder: (context, box, _) {
+                      final stored = box.get(
+                        'emergencyContacts',
+                        defaultValue: defaultContacts,
+                      );
+
+                      final contacts = Map<String, dynamic>.from(stored);
+
+                      final c1 = Map<String, dynamic>.from(contacts['contact1']);
+                      final c2 = Map<String, dynamic>.from(contacts['contact2']);
+
+                      return Column(
+                        children: [
+                          ProfileInfoCard(
+                            header: 'Emergency Contact 1',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _infoRow(Icons.person, c1['name'] ?? ''),
+                                SizedBox(height: 8),
+                                _infoRow(Icons.phone, c1['phone'] ?? ''),
+                                SizedBox(height: 8),
+                                _infoRow(Icons.email, c1['email'] ?? ''),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          ProfileInfoCard(
+                            header: 'Emergency Contact 2',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _infoRow(Icons.person, c2['name'] ?? ''),
+                                SizedBox(height: 8),
+                                _infoRow(Icons.phone, c2['phone'] ?? ''),
+                                SizedBox(height: 8),
+                                _infoRow(Icons.email, c2['email'] ?? ''),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                ),
+
+                  SizedBox(height: 25),
+
+                  /// BUTTON
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade200,
+                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () async {
+                      final current = Map<String, dynamic>.from(
+                        emergencyBox.get('emergencyContacts', defaultValue: defaultContacts),
+                      );
+
+                      await showEmergencyContactsBottomSheet(context, current);
+                    },
+                    child: Text('Edit Emergency Contacts',
+                        style: TextStyle(color: Colors.blueGrey)),
+                  ),
+                ],
               ),
-            ],
-          ),
-          SizedBox(height: 10,),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              ProfileInfoCard(
-                header: 'Emergency Contact 1',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Opeyemi Gbenga'),
-                    SizedBox(height: 8),
-                    Text('+2347060681466'),
-                    SizedBox(height: 8),
-                    Text('temi325@gmail.com'),
-                  ],
-                ),
-              ),
-              ProfileInfoCard(
-                header: 'Emergency Contact 2',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Cyril Fehintoluwa'),
-                    SizedBox(height: 8),
-                    Text('+2347060681466'),
-                    SizedBox(height: 8),
-                    Text('temi325@gmail.com'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ]
-      )
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Reusable icon row
+  Widget _infoRow(IconData icon, String? text) {
+    return Row(
+      children: [
+        Icon(icon, size: 22, color: Colors.blueGrey),
+        SizedBox(width: 6),
+        Text(
+          (text == null || text.isEmpty) ? "—" : text,
+          style: TextStyle(fontSize: 15, letterSpacing: 1.2),
+        ),
+      ],
     );
   }
 }

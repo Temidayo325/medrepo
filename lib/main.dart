@@ -6,7 +6,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  await Hive.openBox('tests'); // box to store all test records
+  await Hive.openBox('tests');
+  await Hive.openBox('emergencyContacts'); // box to store all test records
+  await Hive.openBox('profile'); // box to store all test records
   //final box = await Hive.openBox('tests'); // box to store all test records
 
   // Only clear the box during development
