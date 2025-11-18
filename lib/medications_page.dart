@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+
 import 'components/app_title.dart';
 import 'components/medication/time_flow.dart';
 import 'components/medication/status_selector.dart';
@@ -13,8 +14,8 @@ class MedicationPage extends StatefulWidget {
 }
 
 class _MedicationPageState extends State<MedicationPage> {
-  List<Map<String, dynamic>> medications = [];
-  List<Map<String, dynamic>> filteredMedications = [];
+  List<Map<String, dynamic>> medications = []; // source (Hive order)
+  List<Map<String, dynamic>> filteredMedications = []; // what is displayed
   String activeStatus = 'All';
   String activeFilter = 'All';
 
@@ -24,9 +25,26 @@ class _MedicationPageState extends State<MedicationPage> {
     _loadMedications();
   }
 
-  void _loadMedications() async {
+  // --- LOAD and ensure each med has an id ---
+  Future<void> _loadMedications() async {
     final box = await Hive.openBox('medications');
+    final raw = box.values.map((e) => Map<String, dynamic>.from(e)).toList();
+
+    // Ensure every med has an id; if missing, assign one and save back
+    bool changed = false;
+    for (int i = 0; i < raw.length; i++) {
+      final med = raw[i];
+      if (med['id'] == null) {
+        med['id'] = DateTime.now().millisecondsSinceEpoch.toString() + '_$i';
+        // update Hive at the same position
+        await box.putAt(i, med);
+        changed = true;
+      }
+    }
+
+    // Reload from box if we modified it, to ensure consistency
     final meds = box.values.map((e) => Map<String, dynamic>.from(e)).toList();
+
     setState(() {
       medications = meds;
       filteredMedications = List.from(medications);
@@ -42,34 +60,45 @@ class _MedicationPageState extends State<MedicationPage> {
     });
   }
 
-  void _addOrUpdateMedication(Map<String, dynamic> med, {int? index}) async {
+  // --- Add or update medication (index = hive index in box) ---
+  Future<void> _addOrUpdateMedication(Map<String, dynamic> med, {int? index}) async {
     final box = await Hive.openBox('medications');
 
     if (index != null) {
-      // Update existing medication
+      // Update existing medication at Hive index
+      // Ensure id is preserved (if sheet didn't include it)
+      final existing = index >= 0 && index < medications.length ? medications[index] : null;
+      if (existing != null && existing['id'] != null && med['id'] == null) {
+        med['id'] = existing['id'];
+      }
+      // Ensure created_at exists
+      med['created_at'] = med['created_at'] ?? existing?['created_at'] ?? DateTime.now().toIso8601String();
+
       await box.putAt(index, med);
 
       setState(() {
         medications[index] = med;
       });
     } else {
-      // Add new medication
+      // Add new medication: generate id and ensure created_at
+      med['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+      med['created_at'] = med['created_at'] ?? DateTime.now().toIso8601String();
+
       await box.add(med);
 
+      // reload medications from box to keep indexes consistent
+      final meds = box.values.map((e) => Map<String, dynamic>.from(e)).toList();
       setState(() {
-        medications.add(med);
+        medications = meds;
       });
     }
 
-    // After modifying the medications list, re-apply filters
-    _filterByStatus(activeStatus);
-    if (activeFilter != 'All') _filterMedications(activeFilter);
+    // Re-apply filters and sort
+    _applyFilters();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(index != null
-            ? "${med['name']} updated successfully!"
-            : "${med['name']} added successfully!"),
+        content: Text(index != null ? "${med['name']} updated successfully!" : "${med['name']} added successfully!"),
         backgroundColor: Colors.green,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),
@@ -77,8 +106,11 @@ class _MedicationPageState extends State<MedicationPage> {
     );
   }
 
-  Future<void> _confirmDelete(int index) async {
-    final med = medications[index];
+  // --- Confirm delete using ID (returns bool for confirmDismiss) ---
+  Future<bool> _confirmDeleteById(String id) async {
+    final med = medications.firstWhere((m) => m['id'] == id, orElse: () => {});
+    if (med.isEmpty) return false;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -98,27 +130,36 @@ class _MedicationPageState extends State<MedicationPage> {
       ),
     );
 
-    if (confirmed == true) {
-      final box = await Hive.openBox('medications');
-      await box.deleteAt(index);
+    if (confirmed != true) return false;
 
-      setState(() {
-        medications.removeAt(index);
-        _filterByStatus(activeStatus);
-        if (activeFilter != 'All') _filterMedications(activeFilter);
-      });
+    // Find hive index for this id
+    final box = await Hive.openBox('medications');
+    final hiveList = box.values.map((e) => Map<String, dynamic>.from(e)).toList();
+    final hiveIndex = hiveList.indexWhere((m) => m['id'] == id);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('"${med['name']}" deleted successfully!'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    }
+    if (hiveIndex == -1) return false;
+
+    await box.deleteAt(hiveIndex);
+
+    // Update local lists
+    setState(() {
+      medications.removeWhere((m) => m['id'] == id);
+      filteredMedications.removeWhere((m) => m['id'] == id);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${med['name']}" deleted successfully!'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    return true;
   }
 
+  // --- Time filter callback ---
   void _filterMedications(String filter) {
     activeFilter = filter;
     _applyFilters();
@@ -132,11 +173,13 @@ class _MedicationPageState extends State<MedicationPage> {
     );
   }
 
+  // --- Status filter callback ---
   void _filterByStatus(String status) {
     activeStatus = status;
     _applyFilters();
   }
 
+  // --- Apply both status & time filters ---
   void _applyFilters() {
     final now = DateTime.now();
     List<Map<String, dynamic>> meds = List.from(medications);
@@ -194,6 +237,49 @@ class _MedicationPageState extends State<MedicationPage> {
     return 0;
   }
 
+  // --- Helpers to open edit sheet with correct hive index ---
+  Future<void> _openEditSheetById(String id) async {
+    // find hive index for id
+    final box = await Hive.openBox('medications');
+    final hiveList = box.values.map((e) => Map<String, dynamic>.from(e)).toList();
+    final hiveIndex = hiveList.indexWhere((m) => m['id'] == id);
+
+    if (hiveIndex == -1) return;
+
+    final existingMed = hiveList[hiveIndex];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => NewMedicationSheet(
+        onSave: _addOrUpdateMedication,
+        existingMedication: existingMed,
+        index: hiveIndex, // pass hive index so sheet's onSave updates correctly
+      ),
+    );
+  }
+
+  // --- Show details bottom sheet (no changes needed) ---
+  void _showMedicationDetails(String id) {
+    final med = medications.firstWhere((m) => m['id'] == id, orElse: () => {});
+    if (med.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => MedicationDetailsSheet(
+        name: med['name'],
+        duration: med['duration'],
+        form: med['form'],
+        quantity: med['quantity'],
+        durationOfTherapy: med['duration_of_therapy'],
+        createdAt: med['created_at'],
+        dosageStrength: med['dosage_strength'],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -205,6 +291,7 @@ class _MedicationPageState extends State<MedicationPage> {
       ),
       body: Column(
         children: [
+          // Time filter row
           Container(
             padding: EdgeInsets.symmetric(vertical: 25, horizontal: 15),
             decoration: BoxDecoration(
@@ -213,7 +300,11 @@ class _MedicationPageState extends State<MedicationPage> {
             ),
             child: TimeFilterRow(onFilterSelected: _filterMedications),
           ),
+
+          // Status selector
           StatusSelector(onStatusSelected: _filterByStatus),
+
+          // Grid of medication cards (3 columns)
           Expanded(
             child: filteredMedications.isEmpty
                 ? Center(
@@ -236,14 +327,22 @@ class _MedicationPageState extends State<MedicationPage> {
                 : Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
                     child: SingleChildScrollView(
-                      child: ListView.builder(
+                      child: GridView.builder(
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 20,
+                          mainAxisSpacing: 20,
+                          childAspectRatio: 0.8,
+                        ),
                         itemCount: filteredMedications.length,
                         itemBuilder: (context, index) {
                           final data = filteredMedications[index];
+                          final id = data['id'] as String;
+
                           return Dismissible(
-                            key: Key(data['created_at'] + index.toString()),
+                            key: Key(id),
                             direction: DismissDirection.endToStart,
                             background: Container(
                               color: Colors.red,
@@ -251,19 +350,19 @@ class _MedicationPageState extends State<MedicationPage> {
                               padding: EdgeInsets.symmetric(horizontal: 20),
                               child: Icon(Icons.delete, color: Colors.white),
                             ),
-                            onDismissed: (_) => _confirmDelete(index),
+                            confirmDismiss: (_) => _confirmDeleteById(id),
                             child: GestureDetector(
-                              onLongPress: () => _editMedication(index, data),
+                              onLongPress: () => _openEditSheetById(id),
+                              onTap: () => _showMedicationDetails(id),
                               child: IconTextCard(
                                 name: data['name'],
                                 duration: data['duration'],
                                 form: data['form'],
                                 quantity: data['quantity'],
                                 durationOfTherapy: data['duration_of_therapy'],
-                                onTap: () => _showMedicationDetails(index, data),
                                 trailing: IconButton(
                                   icon: Icon(Icons.edit, color: Colors.blueGrey),
-                                  onPressed: () => _editMedication(index, data),
+                                  onPressed: () => _openEditSheetById(id),
                                 ),
                               ),
                             ),
@@ -273,11 +372,12 @@ class _MedicationPageState extends State<MedicationPage> {
                     ),
                   ),
           ),
+
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          // Add
+        onPressed: () async {
+          // Open new med sheet for add (no index)
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -285,38 +385,8 @@ class _MedicationPageState extends State<MedicationPage> {
           );
         },
         icon: Icon(Icons.add, color: Colors.white, size: 30),
-        label: Text("Add Medication",
-            style: TextStyle(color: Colors.white, fontSize: 15)),
+        label: Text("Add Medication", style: TextStyle(color: Colors.white, fontSize: 15)),
         backgroundColor: Colors.blueGrey,
-      ),
-    );
-  }
-
-  void _editMedication(int index, Map<String, dynamic> med) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => NewMedicationSheet(
-        onSave: _addOrUpdateMedication,
-        existingMedication: medications[index],
-        index: index,
-      ),
-    );
-  }
-
-  void _showMedicationDetails(int index, Map<String, dynamic> data) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => MedicationDetailsSheet(
-        name: data['name'],
-        duration: data['duration'],
-        form: data['form'],
-        quantity: data['quantity'],
-        durationOfTherapy: data['duration_of_therapy'],
-        createdAt: data['created_at'],
-        dosageStrength: data['dosage_strength'],
       ),
     );
   }

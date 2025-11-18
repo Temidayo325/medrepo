@@ -1,17 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
 import 'package:flutter_svg/flutter_svg.dart';
 import 'components/app_title.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  // 🩺 Helper: get latest test by name
+  Future<Map<String, dynamic>?> getLatestTest(String testName) async {
+    final box = await Hive.openBox('tests');
+    final tests = box.values
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+
+    final lowerName = testName.toLowerCase();
+    final filtered = tests.where(
+      (t) => (t['test'] ?? "").toString().toLowerCase() == lowerName,
+    ).toList();
+
+    if (filtered.isEmpty) return null;
+
+    filtered.sort((a, b) =>
+        DateTime.parse(b['timestamp']).compareTo(DateTime.parse(a['timestamp'])));
+
+    return filtered.first;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100),
         child: ValueListenableBuilder(
@@ -19,16 +42,13 @@ class HomePage extends StatelessWidget {
           builder: (context, box, _) {
             final profile = box.get('profile', defaultValue: {});
             final firstName = (profile["name"] ?? "").trim().split(" ").first;
-
             return CustomAppBar(
-              title: "Hello $firstName",      // <-- AUTOMATICALLY UPDATES
-              colors: Colors.blueGrey,   // optional
+              title: "Hello $firstName",
+              colors: Colors.blueGrey,
             );
           },
         ),
       ),
-
-      // 🌿 BODY
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 20),
         child: Column(
@@ -74,7 +94,7 @@ class HomePage extends StatelessWidget {
 
             // 🔹 Section Header
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 0),
+              padding: const EdgeInsets.symmetric(horizontal: 25),
               child: Text(
                 "Here's your health in a glance",
                 textAlign: TextAlign.left,
@@ -87,55 +107,77 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // 🔹 Stats Row
+            // 🔹 Stats Row 1
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25),
               child: Row(
                 children: [
-                  // Card 1
-                  _HealthCard(
-                    title: "Blood Pressure",
-                    value: "120/80",
-                    unit: "mmHg",
-                    target: "<120/80mmHg",
-                    date: "04/05/2025",
-                    icon: Icons.monitor_heart_outlined,
+                  FutureBuilder<Map<String, dynamic>?>(
+                    future: getLatestTest("Blood Pressure"),
+                    builder: (context, snapshot) {
+                      final bp = snapshot.data;
+                      return _HealthCard(
+                        title: "Blood Pressure",
+                        value: bp?['result'] ?? "--",
+                        unit: bp?['unit'] ?? "",
+                        target: "<120/80 mmHg",
+                        date: bp?['date'] ?? "No record",
+                        icon: Icons.monitor_heart_outlined,
+                      );
+                    },
                   ),
                   const SizedBox(width: 20),
-                  // Card 2
-                  _HealthCard(
-                    title: "Fasting Sugar",
-                    value: "95",
-                    unit: "mg/dL",
-                    target: "<100mg/dL",
-                    date: "03/05/2025",
-                    icon: Icons.bloodtype_outlined,
+                  FutureBuilder<Map<String, dynamic>?>(
+                    future: getLatestTest("Fasting Blood Sugar"),
+                    builder: (context, snapshot) {
+                      final fbs = snapshot.data;
+                      return _HealthCard(
+                        title: "Fasting Sugar",
+                        value: fbs?['result'] ?? "--",
+                        unit: fbs?['unit'] ?? "",
+                        target: "<100 mg/dL",
+                        date: fbs?['date'] ?? "No record",
+                        icon: Icons.bloodtype_outlined,
+                      );
+                    },
                   ),
                 ],
               ),
             ),
+
+            // 🔹 Stats Row 2
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),
               child: Row(
                 children: [
-                  // Card 1
-                  _HealthCard(
-                    title: "Blood Cholesterol",
-                    value: "150",
-                    unit: "md/dL",
-                    target: "<200mg/dL",
-                    date: "07/02/2025",
-                    icon: Icons.food_bank,
+                  FutureBuilder<Map<String, dynamic>?>(
+                    future: getLatestTest("Blood Cholesterol"),
+                    builder: (context, snapshot) {
+                      final chol = snapshot.data;
+                      return _HealthCard(
+                        title: "Blood Cholesterol",
+                        value: chol?['result'] ?? "--",
+                        unit: chol?['unit'] ?? "",
+                        target: "<200 mg/dL",
+                        date: chol?['date'] ?? "No record",
+                        icon: Icons.food_bank,
+                      );
+                    },
                   ),
                   const SizedBox(width: 20),
-                  // Card 2
-                  _HealthCard(
-                    title: "Heamatocrit",
-                    value: "38",
-                    unit: "%",
-                    target: ">34%",
-                    date: "15/10/2025",
-                    icon: Icons.biotech_outlined,
+                  FutureBuilder<Map<String, dynamic>?>(
+                    future: getLatestTest("Blood PCV"),
+                    builder: (context, snapshot) {
+                      final pcv = snapshot.data;
+                      return _HealthCard(
+                        title: "Heamatocrit",
+                        value: pcv?['result'] ?? "--",
+                        unit: pcv?['unit'] ?? "%",
+                        target: "34–54%",
+                        date: pcv?['date'] ?? "No record",
+                        icon: Icons.biotech_outlined,
+                      );
+                    },
                   ),
                 ],
               ),
@@ -219,10 +261,10 @@ class _HealthCard extends StatelessWidget {
                     color: Colors.blueGrey,
                   ),
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   unit,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Colors.blueGrey,
@@ -230,12 +272,12 @@ class _HealthCard extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Icon(Icons.calendar_today_rounded,
                     size: 16, color: Colors.blueGrey.shade400),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   date,
                   style: TextStyle(

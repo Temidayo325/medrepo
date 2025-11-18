@@ -26,19 +26,14 @@ class MedicationDetailsSheet extends StatelessWidget {
     switch (form.toLowerCase()) {
       case 'tablet':
         assetName = 'assets/dosage_form/tablet.png';
-        break;
       case 'injection':
         assetName = 'assets/dosage_form/injection.png';
-        break;
       case 'capsule':
         assetName = 'assets/dosage_form/capsule.png';
-        break;
       case 'syrup':
         assetName = 'assets/dosage_form/syrup.png';
-        break;
       case 'ointment':
         assetName = 'assets/dosage_form/ointment.png';
-        break;
       default:
         assetName = 'assets/dosage_form/tablet.png';
     }

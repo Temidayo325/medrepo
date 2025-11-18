@@ -28,19 +28,14 @@ class IconTextCard extends StatelessWidget {
     switch (formLower) {
       case 'tablet':
         assetPath = 'assets/dosage_form/tablet.png';
-        break;
       case 'injection':
         assetPath = 'assets/dosage_form/injection.png';
-        break;
       case 'capsule':
         assetPath = 'assets/dosage_form/capsule.png';
-        break;
       case 'syrup':
         assetPath = 'assets/dosage_form/syrup.png';
-        break;
       case 'ointment':
         assetPath = 'assets/dosage_form/ointment.png';
-        break;
       default:
         assetPath = 'assets/dosage_form/tablet.png';
     }

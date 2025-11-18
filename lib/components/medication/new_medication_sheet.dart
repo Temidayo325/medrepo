@@ -65,6 +65,18 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Center(
+                  child: Container(
+                    width: 70,
+                    height: 6,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.blueGrey,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12),
                 Text(
                   widget.existingMedication == null
                       ? "Add New Medication"
