@@ -21,10 +21,10 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
     }),
   );
 
-  // controllers
+  // Controllers
   final nameCtrl = TextEditingController(text: profile["name"]);
   final ageCtrl = TextEditingController(text: profile["age"].toString());
-  final genderCtrl = TextEditingController(text: profile["gender"]);
+  String selectedGender = profile["gender"] ?? "";
   final phoneCtrl = TextEditingController(text: profile["phone"]);
   final emailCtrl = TextEditingController(text: profile["email"]);
   final bloodGroupCtrl = TextEditingController(text: profile["bloodGroup"]);
@@ -34,13 +34,12 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
   final weightCtrl = TextEditingController(text: profile["weight"]);
   final conditionsCtrl = TextEditingController(text: profile["conditions"]);
 
-  // ============================
-  //    BMI CALCULATION LOGIC
-  // ============================
+  final _formKey = GlobalKey<FormState>();
+
+  // BMI calculation logic
   void calculateBMI() {
     final weight = double.tryParse(weightCtrl.text) ?? 0;
     final height = double.tryParse(heightCtrl.text) ?? 0;
-
     if (weight > 0 && height > 0) {
       final heightMeters = height / 100;
       final bmi = weight / (heightMeters * heightMeters);
@@ -50,149 +49,186 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
     }
   }
 
-  // Calculate automatically when height/weight changes
+  // Recalculate BMI when height/weight changes
   heightCtrl.addListener(calculateBMI);
   weightCtrl.addListener(calculateBMI);
 
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    backgroundColor: Colors.transparent,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
     builder: (context) {
-      return Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          left: 25,
-          right: 25,
-          top: 25,
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 70,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.blueGrey,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              const Text(
-                "Edit Profile",
-                style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey),
-              ),
-              const SizedBox(height: 20),
-
-              // === FORM FIELDS ===
-              _buildField("Full Name", nameCtrl),
-              _buildField("Age", ageCtrl, type: TextInputType.number),
-              _buildField("Gender", genderCtrl),
-              _buildField("Phone Number", phoneCtrl,
-                  type: TextInputType.phone),
-              _buildField("Email", emailCtrl,
-                  type: TextInputType.emailAddress),
-              _buildField("Blood Group", bloodGroupCtrl),
-              _buildField("Genotype", genotypeCtrl),
-              _buildField("Height (cm)", heightCtrl,
-                  type: TextInputType.number),
-              _buildField("Weight (kg)", weightCtrl,
-                  type: TextInputType.number),
-
-              // AUTO GENERATED BMI DISPLAY
-              Padding(
-                padding: const EdgeInsets.only(bottom: 15),
-                child: Text(
-                  "BMI: ${bmiCtrl.text}",
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blueGrey,
-                  ),
-                ),
-              ),
-
-              _buildField("Chronic Conditions", conditionsCtrl),
-
-              const SizedBox(height: 30),
-
-              Center(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 40, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
-                  onPressed: () async {
-                    // Build updated profile map
-                    final updatedProfile = {
-                      "name": nameCtrl.text,
-                      "age": ageCtrl.text,
-                      "gender": genderCtrl.text,
-                      "phone": phoneCtrl.text,
-                      "email": emailCtrl.text,
-                      "bloodGroup": bloodGroupCtrl.text,
-                      "genotype": genotypeCtrl.text,
-                      "height": heightCtrl.text,
-                      "weight": weightCtrl.text,
-                      "bmi": bmiCtrl.text,
-                      "conditions": conditionsCtrl.text,
-                    };
-
-                    // SHOW LOADING MODAL
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) {
-                        return Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              CircularProgressIndicator(color: Colors.white),
-                              SizedBox(height: 16),
-                              Text(
-                                "Saving...",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            left: 25,
+            right: 25,
+            top: 25,
+          ),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle + Close button
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 70,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey,
+                            borderRadius: BorderRadius.circular(10),
                           ),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.close, color: Colors.blueGrey),
+                          tooltip: "Close",
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Edit Profile",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Form fields
+                  _buildField("Full Name", nameCtrl, validator: (value) {
+                    if (value == null || value.trim().isEmpty) return "Name is required";
+                    if (value.trim().length < 2) return "Name too short";
+                    return null;
+                  }),
+                  _buildField("Age", ageCtrl,
+                      type: TextInputType.number, validator: (value) {
+                    final age = int.tryParse(value ?? "");
+                    if (age == null) return "Enter a valid age";
+                    if (age <= 0 || age > 120) return "Enter a valid age";
+                    return null;
+                  }),
+                  _buildGenderField("Gender", selectedGender, (val) {
+                    selectedGender = val ?? "";
+                  }),
+                  _buildField("Phone Number", phoneCtrl,
+                      type: TextInputType.phone, validator: (value) {
+                    if (value == null || value.trim().isEmpty) return null;
+                    final regex = RegExp(r'^[0-9]{7,15}$');
+                    if (!regex.hasMatch(value.trim())) return "Enter a valid phone number";
+                    return null;
+                  }),
+                  _buildField("Email", emailCtrl,
+                      type: TextInputType.emailAddress, validator: (value) {
+                    if (value == null || value.trim().isEmpty) return null;
+                    final regex = RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$");
+                    if (!regex.hasMatch(value.trim())) return "Enter a valid email";
+                    return null;
+                  }),
+                  _buildField("Blood Group", bloodGroupCtrl),
+                  _buildField("Genotype", genotypeCtrl),
+                  _buildField("Height (cm)", heightCtrl, type: TextInputType.number),
+                  _buildField("Weight (kg)", weightCtrl, type: TextInputType.number),
+
+                  // BMI display
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 15),
+                    child: Text(
+                      "BMI: ${bmiCtrl.text}",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.blueGrey,
+                      ),
+                    ),
+                  ),
+
+                  _buildField("Chronic Conditions", conditionsCtrl),
+                  const SizedBox(height: 30),
+
+                  Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueGrey,
+                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () async {
+                        if (!_formKey.currentState!.validate()) return;
+
+                        final updatedProfile = {
+                          "name": nameCtrl.text,
+                          "age": ageCtrl.text,
+                          "gender": selectedGender,
+                          "phone": phoneCtrl.text,
+                          "email": emailCtrl.text,
+                          "bloodGroup": bloodGroupCtrl.text,
+                          "genotype": genotypeCtrl.text,
+                          "height": heightCtrl.text,
+                          "weight": weightCtrl.text,
+                          "bmi": bmiCtrl.text,
+                          "conditions": conditionsCtrl.text,
+                        };
+
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) {
+                            return Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  CircularProgressIndicator(color: Colors.white),
+                                  SizedBox(height: 16),
+                                  Text(
+                                    "Saving...",
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         );
+
+                        await Future.delayed(const Duration(milliseconds: 500));
+                        await box.put("profile", updatedProfile);
+
+                        Navigator.pop(context); // close loading
+                        Navigator.pop(context); // close bottom sheet
                       },
-                    );
-                    // WAIT 500 milliseconds
-                    await Future.delayed(const Duration(milliseconds: 500));
-                    // SAVE TO HIVE
-                    final box = Hive.box('profile');
-                    await box.put("profile", updatedProfile);
-
-                    // CLOSE LOADING MODAL
-                    Navigator.pop(context);
-
-                    // CLOSE BOTTOMSHEET
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Save",
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
+                      child: const Text("Save",
+                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
-
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
         ),
       );
@@ -200,13 +236,41 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
   );
 }
 
+// === Helper Widgets ===
 Widget _buildField(String label, TextEditingController controller,
-    {TextInputType type = TextInputType.text}) {
+    {TextInputType type = TextInputType.text, String? Function(String?)? validator}) {
   return Padding(
     padding: const EdgeInsets.only(bottom: 15),
     child: TextFormField(
       controller: controller,
       keyboardType: type,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.blueGrey),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Colors.blueGrey),
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _buildGenderField(String label, String? selectedGender, Function(String?) onChanged) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 15),
+    child: DropdownButtonFormField<String>(
+      value: selectedGender?.isEmpty ?? true ? null : selectedGender,
+      items: const [
+        DropdownMenuItem(value: "Male", child: Text("Male")),
+        DropdownMenuItem(value: "Female", child: Text("Female")),
+      ],
+      onChanged: onChanged,
+      validator: (value) => value == null || value.isEmpty ? "Select gender" : null,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.blueGrey),
