@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../colors.dart';
 
 class ProfileInfoCard extends StatelessWidget {
   final String header;
@@ -16,11 +17,11 @@ class ProfileInfoCard extends StatelessWidget {
       width: double.infinity, // full width inside parent padding
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100, // subtle contrast
+        color: Colors.white, // subtle contrast
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.15),
+            color: Colors.grey.withValues(alpha: 0.15),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -34,7 +35,7 @@ class ProfileInfoCard extends StatelessWidget {
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
-              color: Colors.blueGrey,
+              color: Color.fromARGB(255, 3, 118, 30),
             ),
           ),
           const SizedBox(height: 12),

@@ -5,6 +5,7 @@ import 'components/profile/profile_picure.dart';
 import 'components/profile/profile_info.dart';
 import 'components/profile/add_emergency_contact.dart';
 import 'components/profile/edit_profile.dart';
+import 'colors.dart';
 
 class ProfilePage extends StatelessWidget {
   ProfilePage({super.key});
@@ -32,18 +33,18 @@ class ProfilePage extends StatelessWidget {
     final profileBox = Hive.box('profile');
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.lightBackground,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.lightBackground,
         elevation: 0,
         toolbarHeight: 90,
-        leading: Icon(Icons.arrow_back, color: Colors.blueGrey.shade800, size: 25),
+        // leading: Icon(Icons.arrow_back, color: AppColors.primaryGreen, size: 25),
         centerTitle: true,
         title: const Text(
           'Profile',
           style: TextStyle(
             fontSize: 25,
-            color: Colors.blueGrey,
+            color: Color.fromARGB(255, 3, 118, 30),
             fontWeight: FontWeight.bold,
             decoration: TextDecoration.none,
           ),
@@ -54,7 +55,7 @@ class ProfilePage extends StatelessWidget {
             child: const Text(
               "Edit",
               style: TextStyle(
-                color: Colors.blueGrey,
+                color: AppColors.primaryGreen,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 decoration: TextDecoration.underline,
@@ -79,23 +80,23 @@ class ProfilePage extends StatelessWidget {
 
           return SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center, // keeps vertical centering
+                // crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   /// Avatar
                   ProfileAvatar(),
                   SizedBox(height: 15),
-
                   /// Name - Enhanced empty state
                   hasProfileData 
                     ? Text(
                         profile["name"],
+                        // textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blueGrey.shade800,
+                          color: Color.fromARGB(255, 3, 118, 30),
                         ),
                       )
                     : Column(
@@ -103,7 +104,7 @@ class ProfilePage extends StatelessWidget {
                           Icon(
                             Icons.person_outline,
                             size: 40,
-                            color: Colors.blueGrey.shade300,
+                            color: Color.fromARGB(255, 3, 118, 30),
                           ),
                           SizedBox(height: 8),
                           Text(
@@ -111,7 +112,7 @@ class ProfilePage extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.w600,
-                              color: Colors.blueGrey.shade400,
+                              color: Color.fromARGB(255, 3, 118, 30),
                             ),
                           ),
                           SizedBox(height: 4),
@@ -119,7 +120,7 @@ class ProfilePage extends StatelessWidget {
                             "Tap Edit to get started",
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.blueGrey.shade300,
+                              color: AppColors.primaryGreen,
                             ),
                           ),
                         ],
@@ -129,46 +130,77 @@ class ProfilePage extends StatelessWidget {
 
                   /// PROFILE INFO - Enhanced empty state
                   hasProfileData
-                    ? Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  "${profile['age']} yo, ${profile['gender']}",
-                                  style: TextStyle(fontSize: 17),
-                                ),
-                                SizedBox(height: 3),
-                                Text("${profile['phone']}", style: TextStyle(fontSize: 17)),
-                                Text("${profile['email']}", style: TextStyle(fontSize: 17)),
-                              ],
-                            ),
+                    ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          margin: EdgeInsets.symmetric(horizontal: 5, vertical: 0),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20), // fully rounded
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 30),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "${profile['bloodGroup']}, ${profile['genotype']}, BMI: ${profile['bmi']}",
-                                  style: TextStyle(fontSize: 17),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  "Hgt: ${profile['height']}cm, Wgt: ${profile['weight']} kg",
-                                  style: TextStyle(fontSize: 17),
-                                ),
-                                SizedBox(height: 2,),
-                                Text(
-                                  "Chronic: ${profile['conditions']}",
-                                  style: TextStyle(fontSize: 17),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      )
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children:[
+                                  _infoCard("${profile['age']}", "Age"),
+                                  SizedBox(width: 10),
+                                  _infoCard("${profile['bmi']}", "BMI"),
+                                  SizedBox(width: 10),
+                                  _infoCard("${profile['bloodGroup']}", "Blood group"),
+                                  SizedBox(width: 10),
+                                  _infoCard("${profile['genotype']}", "Genotype"),
+                                ]
+                              )
+                            ],)
+                        ),
+                        SizedBox(height: 35),
+                        Text("Contact information", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
+                        SizedBox(height: 5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                              _additionalInfo(Icons.mail, "${profile['email']}"),
+                              SizedBox(width:15),
+                              _additionalInfo(Icons.phone, "${profile['phone']}")
+                          ]
+                        ),
+                        
+                        SizedBox(height: 35),
+                        Text("Physical Features", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
+                        SizedBox(height:5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                              _additionalInfo(Icons.height, "${profile['height']}"),
+                              SizedBox(width:5),
+                              _additionalInfo(Icons.monitor_weight, "${profile['weight']}"),
+                              SizedBox(width: 5),
+                              _additionalInfo(Icons.people_outline, "${profile['gender']}"),
+                          ]
+                        ),
+
+                        SizedBox(height: 35),
+                        Text("Chronic features", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
+                        SizedBox(height: 5),
+                        Text("${profile['conditions']}", style: TextStyle(color: Colors.black45, fontSize: 17, letterSpacing: 1.2),)
+                      ]
+                    )
                     : Container(
                         padding: EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -184,7 +216,7 @@ class ProfilePage extends StatelessWidget {
                             Icon(
                               Icons.health_and_safety_outlined,
                               size: 48,
-                              color: Colors.blueGrey.shade300,
+                              color: AppColors.primaryGreen,
                             ),
                             SizedBox(height: 12),
                             Text(
@@ -192,7 +224,7 @@ class ProfilePage extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.blueGrey.shade600,
+                                color: AppColors.primaryGreen,
                               ),
                             ),
                             SizedBox(height: 6),
@@ -201,7 +233,7 @@ class ProfilePage extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.blueGrey.shade400,
+                                color: AppColors.primaryGreen,
                               ),
                             ),
                           ],
@@ -308,14 +340,14 @@ class ProfilePage extends StatelessWidget {
             Icon(
               Icons.person_add_outlined,
               size: 32,
-              color: Colors.blueGrey.shade300,
+              color: AppColors.primaryGreen,
             ),
             SizedBox(height: 8),
             Text(
               "No contact added",
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.blueGrey.shade400,
+                color: AppColors.primaryGreen,
               ),
             ),
           ],
@@ -341,6 +373,69 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _infoCard(String? value, String details) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            (value == null || value.isEmpty) ? "--" : value,
+            style: const TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+              color: Color.fromARGB(255, 3, 118, 30)
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            details,
+            style: const TextStyle(
+              fontSize: 15,
+              color: Colors.black45,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _additionalInfo(IconData icon, String? text)
+  {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+      margin: EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20), // fully rounded
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: Colors.black45),
+          SizedBox(width: 6),
+          Text(
+              (text == null || text.isEmpty) ? "-----" : text,
+              style: TextStyle(fontSize: 14, letterSpacing: 1,),
+            ),
+        ],
+      )
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../../colors.dart';
 
 Future<void> showEmergencyContactsBottomSheet(
     BuildContext context, Map<String, dynamic> emergencyContacts) async {
@@ -40,13 +41,13 @@ Future<void> showEmergencyContactsBottomSheet(
                   height: 6,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.blueGrey,
+                    color: AppColors.primaryGreen,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
               SizedBox(height: 30,),
-              const Text('Emergency Contact 1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const Text('Emergency Contact 1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primaryGreen)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: contact1NameController,
@@ -63,7 +64,7 @@ Future<void> showEmergencyContactsBottomSheet(
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 40),
-              const Text('Emergency Contact 2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const Text('Emergency Contact 2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primaryGreen)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: contact2NameController,
@@ -83,7 +84,7 @@ Future<void> showEmergencyContactsBottomSheet(
               Center(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey,
+                    backgroundColor: AppColors.primaryGreen,
                     padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -108,7 +109,7 @@ Future<void> showEmergencyContactsBottomSheet(
                     if (!context.mounted) return;
                     Navigator.pop(context); // close bottom sheet
                   },
-                  child: Text('Save', style: TextStyle(color: Colors.white, fontSize: 16 ),),
+                  child: Text('Save', style: TextStyle(color: AppColors.lightBackground, fontSize: 16 ),),
                 ),
               ),
               const SizedBox(height: 20),

@@ -7,6 +7,7 @@ import 'components/medication/status_selector.dart';
 import 'components/medication/med_overview_card.dart';
 import 'components/medication/med_details.dart';
 import 'components/medication/new_medication_sheet.dart';
+import 'colors.dart';
 
 class MedicationPage extends StatefulWidget {
   @override
@@ -98,10 +99,10 @@ class _MedicationPageState extends State<MedicationPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(index != null ? "${med['name']} updated successfully!" : "${med['name']} added successfully!"),
-        backgroundColor: Colors.green,
+        content: Text(index != null ? "${med['name']} updated successfully!" : "${med['name']} added successfully!", style: TextStyle(color: AppColors.lightBackground),),
+        backgroundColor: AppColors.primaryGreen,
         behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
+        duration: Duration(seconds: 3),
       ),
     );
   }
@@ -114,7 +115,7 @@ class _MedicationPageState extends State<MedicationPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Delete Medication'),
+        title: Text('Delete Medication', style: TextStyle(color: AppColors.lightBackground),),
         content: Text('Are you sure you want to delete "${med['name']}"?'),
         actions: [
           TextButton(
@@ -149,8 +150,8 @@ class _MedicationPageState extends State<MedicationPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('"${med['name']}" deleted successfully!'),
-        backgroundColor: Colors.red,
+        content: Text('"${med['name']}" deleted successfully!', style: TextStyle(color: AppColors.lightBackground),),
+        backgroundColor: AppColors.primaryGreen,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),
       ),
@@ -165,8 +166,8 @@ class _MedicationPageState extends State<MedicationPage> {
     _applyFilters();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Filtered by $filter • ${filteredMedications.length} meds"),
-        backgroundColor: Colors.blueGrey,
+        content: Text("Filtered by $filter • ${filteredMedications.length} meds", style: TextStyle(color: AppColors.primaryGreen),),
+        backgroundColor: AppColors.lightBackground,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
@@ -283,11 +284,11 @@ class _MedicationPageState extends State<MedicationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.lightBackground,
       appBar: CustomAppBar(
         title: 'Medications',
-        colors: Colors.white,
-        backgroundColor: Colors.blueGrey,
+        colors: AppColors.lightBackground,
+        backgroundColor: AppColors.primaryGreen,
       ),
       body: Column(
         children: [
@@ -295,8 +296,8 @@ class _MedicationPageState extends State<MedicationPage> {
           Container(
             padding: EdgeInsets.symmetric(vertical: 25, horizontal: 15),
             decoration: BoxDecoration(
-              color: Colors.blueGrey,
-              border: Border(top: BorderSide(color: Colors.grey.shade300)),
+              color: AppColors.primaryGreen,
+              border: Border(top: BorderSide(color: AppColors.lightBackground)),
             ),
             child: TimeFilterRow(onFilterSelected: _filterMedications),
           ),
@@ -312,13 +313,13 @@ class _MedicationPageState extends State<MedicationPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.medical_services_outlined,
-                            size: 80, color: Colors.blueGrey.shade200),
+                            size: 80, color: AppColors.primaryGreen),
                         SizedBox(height: 20),
                         Text(
                           "No medications found for this timeframe.",
                           style: TextStyle(
                               fontSize: 16,
-                              color: Colors.grey.shade600,
+                              color: AppColors.primaryGreen,
                               fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -331,7 +332,7 @@ class _MedicationPageState extends State<MedicationPage> {
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
+                          crossAxisCount: 2,
                           crossAxisSpacing: 20,
                           mainAxisSpacing: 20,
                           childAspectRatio: 0.8,
@@ -345,10 +346,10 @@ class _MedicationPageState extends State<MedicationPage> {
                             key: Key(id),
                             direction: DismissDirection.endToStart,
                             background: Container(
-                              color: Colors.red,
+                              color: AppColors.primaryGreen,
                               alignment: Alignment.centerRight,
                               padding: EdgeInsets.symmetric(horizontal: 20),
-                              child: Icon(Icons.delete, color: Colors.white),
+                              child: Icon(Icons.delete, color: AppColors.lightBackground),
                             ),
                             confirmDismiss: (_) => _confirmDeleteById(id),
                             child: GestureDetector(
@@ -361,7 +362,7 @@ class _MedicationPageState extends State<MedicationPage> {
                                 quantity: data['quantity'],
                                 durationOfTherapy: data['duration_of_therapy'],
                                 trailing: IconButton(
-                                  icon: Icon(Icons.edit, color: Colors.blueGrey),
+                                  icon: Icon(Icons.edit, color: AppColors.primaryGreen),
                                   onPressed: () => _openEditSheetById(id),
                                 ),
                               ),
@@ -384,9 +385,9 @@ class _MedicationPageState extends State<MedicationPage> {
             builder: (_) => NewMedicationSheet(onSave: _addOrUpdateMedication),
           );
         },
-        icon: Icon(Icons.add, color: Colors.white, size: 30),
-        label: Text("Add Medication", style: TextStyle(color: Colors.white, fontSize: 15)),
-        backgroundColor: Colors.blueGrey,
+        icon: Icon(Icons.add, color: AppColors.lightBackground, size: 30),
+        label: Text("Add Medication", style: TextStyle(color: AppColors.lightBackground, fontSize: 15)),
+        backgroundColor: AppColors.primaryGreen,
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import '../../colors.dart';
 
 Future<void> showEditProfileBottomSheet(BuildContext context) async {
   final box = Hive.box('profile');
@@ -63,7 +64,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
     builder: (context) {
       return Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.lightBackground,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Padding(
@@ -89,7 +90,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                           width: 70,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: Colors.blueGrey,
+                            color: AppColors.primaryGreen,
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -98,7 +99,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                         alignment: Alignment.centerRight,
                         child: IconButton(
                           onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.close, color: Colors.blueGrey),
+                          icon: Icon(Icons.close, color: AppColors.primaryGreen),
                           tooltip: "Close",
                         ),
                       ),
@@ -110,7 +111,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey,
+                      color: AppColors.primaryGreen,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -158,7 +159,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Colors.blueGrey,
+                        color: AppColors.primaryGreen,
                       ),
                     ),
                   ),
@@ -169,7 +170,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                   Center(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueGrey,
+                        backgroundColor: AppColors.primaryGreen,
                         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
@@ -222,7 +223,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                         Navigator.pop(context); // close bottom sheet
                       },
                       child: const Text("Save",
-                          style: TextStyle(color: Colors.white, fontSize: 16)),
+                          style: TextStyle(color: AppColors.lightBackground, fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -247,13 +248,13 @@ Widget _buildField(String label, TextEditingController controller,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.blueGrey),
+        labelStyle: const TextStyle(color: Color.fromARGB(255, 2, 105, 29)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Colors.blueGrey),
+          borderSide: const BorderSide(color: Color.fromARGB(255, 1, 47, 28)),
         ),
       ),
     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../colors.dart';
 
 class NewMedicationSheet extends StatefulWidget {
   final Function(Map<String, dynamic> med, {int? index}) onSave;
@@ -71,7 +72,7 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                     height: 6,
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
-                      color: Colors.blueGrey,
+                      color: AppColors.primaryGreen,
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -81,7 +82,7 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                   widget.existingMedication == null
                       ? "Add New Medication"
                       : "Edit Medication",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
                 ),
                 SizedBox(height: 15),
                 _buildTextField(_nameController, "Name"),
@@ -93,7 +94,7 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                 SizedBox(height: 20),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueGrey,
+                    backgroundColor: AppColors.primaryGreen,
                     padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 30),
                   ),
                   onPressed: () {
@@ -114,7 +115,7 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                   },
                   child: Text(
                     widget.existingMedication == null ? "Save Medication" : "Update Medication",
-                    style: TextStyle(color: Colors.white, fontSize: 17),
+                    style: TextStyle(color: AppColors.lightBackground, fontSize: 17),
                   ),
                 ),
               ],

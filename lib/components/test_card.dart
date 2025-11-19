@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../colors.dart';
 
 class TestCard extends StatefulWidget {
   final String test;
@@ -65,16 +66,17 @@ class _TestCardState extends State<TestCard> with SingleTickerProviderStateMixin
       margin: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blueGrey.shade50, Colors.blueGrey.shade100],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
+        // gradient: LinearGradient(
+        //   colors: [Colors.blueGrey.shade50, Colors.blueGrey.shade100],
+        //   begin: Alignment.topLeft,
+        //   end: Alignment.bottomRight,
+        // ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: _glow
             ? [
                 BoxShadow(
-                  color: widget.glowColor ?? Colors.blueAccent.withOpacity(0.7),
+                  color: widget.glowColor ?? Colors.blueAccent.withValues(alpha: 0.7),
                   blurRadius: 20,
                   spreadRadius: 2,
                   offset: const Offset(0, 0),
@@ -94,12 +96,12 @@ class _TestCardState extends State<TestCard> with SingleTickerProviderStateMixin
           Text(widget.test,
               style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey,
+                  color: Colors.grey,
                   fontSize: 17)),
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(widget.icon, color: Colors.blueGrey.shade700, size: 30),
+              Icon(widget.icon, color: Colors.grey, size: 30),
               const Spacer(),
               RichText(
                 text: TextSpan(
@@ -109,13 +111,13 @@ class _TestCardState extends State<TestCard> with SingleTickerProviderStateMixin
                         style: TextStyle(
                             fontSize: 42,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blueGrey)),
+                            color: AppColors.primaryGreen)),
                     TextSpan(
                         text: widget.unit,
                         style: TextStyle(
                             fontSize: 16,
-                            color: Colors.blueGrey.shade600,
-                            letterSpacing: 1.4)),
+                            color: AppColors.primaryGreen,
+                            letterSpacing: 1.3)),
                   ],
                 ),
               )
@@ -125,11 +127,11 @@ class _TestCardState extends State<TestCard> with SingleTickerProviderStateMixin
           Row(
             children: [
               Icon(Icons.calendar_today_rounded,
-                  size: 18, color: Colors.blueGrey.shade500),
+                  size: 18, color: Colors.grey),
               const SizedBox(width: 8),
               Text(widget.date,
                   style:
-                      TextStyle(fontSize: 15, color: Colors.blueGrey.shade600)),
+                      TextStyle(fontSize: 15, color: Colors.black45)),
             ],
           ),
         ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'colors.dart';
 
 import 'home_page.dart';
 import 'test_page.dart';
@@ -23,7 +24,7 @@ class RootPage extends StatelessWidget {
       valueListenable: NavigationController.selectedIndex,
       builder: (context, selectedIndex, _) {
         return Scaffold(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.lightBackground,
           body: pages[selectedIndex],
 
           // Bottom Navigation Bar
@@ -50,8 +51,8 @@ class RootPage extends StatelessWidget {
               child: BottomNavigationBar(
                 type: BottomNavigationBarType.fixed,
                 backgroundColor: Colors.white,
-                selectedItemColor: Colors.black,
-                unselectedItemColor: Colors.blueGrey,
+                selectedItemColor: AppColors.primaryGreen,
+                unselectedItemColor: const Color.fromARGB(255, 0, 72, 3),
                 items: const [
                   BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
                   BottomNavigationBarItem(icon: Icon(Icons.science), label: 'Tests'),

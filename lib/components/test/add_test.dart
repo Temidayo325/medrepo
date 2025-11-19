@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../../colors.dart';
 
 class AddTestBottomSheet extends StatefulWidget {
   final Map<String, dynamic>? existingTest; // for editing
@@ -106,7 +107,7 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Failed to save test: $e"),
-            backgroundColor: Colors.red,
+            backgroundColor: Color.fromARGB(255, 3, 118, 30),
           ),
         );
       }
@@ -136,7 +137,7 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                   height: 8,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.blueGrey,
+                    color: AppColors.primaryGreen,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -146,7 +147,7 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey.shade800,
+                  color: AppColors.primaryGreen,
                 ),
               ),
               const SizedBox(height: 30),
@@ -182,7 +183,7 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                 decoration: const InputDecoration(
                   labelText: "Date",
                   border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_month),
+                  suffixIcon: Icon(Icons.calendar_month, color: Color.fromARGB(255, 3, 118, 30),),
                 ),
                 validator: (value) => value == null || value.isEmpty ? "Test date is required" : null,
                 onTap: () async {
@@ -208,24 +209,24 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: Colors.blueGrey, width: 2),
+                        backgroundColor: AppColors.lightBackground,
+                        side: BorderSide(color: AppColors.primaryGreen, width: 1),
                       ),
                       onPressed: () => _saveTest(closeAfterSave: false),
                       child: Text(isEditing ? "Update & Continue" : "Save & Add Another",
-                          style: TextStyle(color: Colors.blueGrey, fontSize: 16)),
+                          style: TextStyle(color: AppColors.primaryGreen, fontSize: 16)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueGrey,
+                        backgroundColor: AppColors.primaryGreen,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
                       onPressed: () => _saveTest(closeAfterSave: true),
                       child: Text(isEditing ? "Update & Close" : "Save & Close",
-                          style: const TextStyle(color: Colors.white, fontSize: 16)),
+                          style: const TextStyle(color: AppColors.lightBackground, fontSize: 16)),
                     ),
                   ),
                 ],

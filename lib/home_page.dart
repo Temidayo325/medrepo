@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'components/app_title.dart';
+import 'colors.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
+  
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  
+  ValueNotifier<int?> selectedHealthCard = ValueNotifier(null);
   // 🩺 Helper: get latest test by name
   Future<Map<String, dynamic>?> getLatestTest(String testName) async {
     final box = await Hive.openBox('tests');
@@ -34,7 +37,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.lightBackground,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100),
         child: ValueListenableBuilder(
@@ -44,7 +47,7 @@ class _HomePageState extends State<HomePage> {
             final firstName = (profile["name"] ?? "").trim().split(" ").first;
             return CustomAppBar(
               title: "Hello $firstName",
-              colors: Colors.blueGrey,
+              colors: AppColors.primaryGreen,
             );
           },
         ),
@@ -64,8 +67,14 @@ class _HomePageState extends State<HomePage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.blueGrey.shade50,
-                    Colors.blueGrey.shade200,
+                    Color(0xFF3EB06F),// primary green
+                    Color(0xFF6FDCA1), 
+                    // Color(0xFF3EB06F),// primary green
+                    // Color(0xFF2A8C56), 
+                    Color(0xFF3EB06F).withValues(alpha: 0.9),
+                    // Color(0xFF3EB06F).withValues(alpha: 0.4),
+                    // Color(0xFF3EB06F),   // primary green
+                    // Color(0xFFF7F8FC)
                   ],
                 ),
               ),
@@ -77,7 +86,7 @@ class _HomePageState extends State<HomePage> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blueGrey.shade800,
+                        color: AppColors.lightBackground,
                         height: 1.4,
                       ),
                     ),
@@ -101,7 +110,7 @@ class _HomePageState extends State<HomePage> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blueGrey.shade800,
+                  color: AppColors.primaryGreen,
                 ),
               ),
             ),
@@ -116,7 +125,9 @@ class _HomePageState extends State<HomePage> {
                     future: getLatestTest("Blood Pressure"),
                     builder: (context, snapshot) {
                       final bp = snapshot.data;
-                      return _HealthCard(
+                      return HealthCard(
+                        index: 0,
+                        selectedNotifier: selectedHealthCard,
                         title: "Blood Pressure",
                         value: bp?['result'] ?? "--",
                         unit: bp?['unit'] ?? "",
@@ -131,8 +142,10 @@ class _HomePageState extends State<HomePage> {
                     future: getLatestTest("Fasting Blood Sugar"),
                     builder: (context, snapshot) {
                       final fbs = snapshot.data;
-                      return _HealthCard(
-                        title: "Fasting Sugar",
+                      return HealthCard(
+                        index: 1,
+                        selectedNotifier: selectedHealthCard,
+                        title: "Fasting blood sugar",
                         value: fbs?['result'] ?? "--",
                         unit: fbs?['unit'] ?? "",
                         target: "<100 mg/dL",
@@ -154,7 +167,9 @@ class _HomePageState extends State<HomePage> {
                     future: getLatestTest("Blood Cholesterol"),
                     builder: (context, snapshot) {
                       final chol = snapshot.data;
-                      return _HealthCard(
+                      return HealthCard(
+                        index: 2,
+                        selectedNotifier: selectedHealthCard,
                         title: "Blood Cholesterol",
                         value: chol?['result'] ?? "--",
                         unit: chol?['unit'] ?? "",
@@ -169,7 +184,9 @@ class _HomePageState extends State<HomePage> {
                     future: getLatestTest("Blood PCV"),
                     builder: (context, snapshot) {
                       final pcv = snapshot.data;
-                      return _HealthCard(
+                      return HealthCard(
+                        index: 3,
+                        selectedNotifier: selectedHealthCard,
                         title: "Heamatocrit",
                         value: pcv?['result'] ?? "--",
                         unit: pcv?['unit'] ?? "%",
@@ -189,8 +206,10 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// 🩺 Reusable Health Card Widget
-class _HealthCard extends StatelessWidget {
+class HealthCard extends StatefulWidget {
+  final int index;
+  final ValueNotifier<int?> selectedNotifier;
+
   final String title;
   final String value;
   final String unit;
@@ -198,7 +217,10 @@ class _HealthCard extends StatelessWidget {
   final String date;
   final IconData icon;
 
-  const _HealthCard({
+  const HealthCard({
+    super.key,
+    required this.index,
+    required this.selectedNotifier,
     required this.title,
     required this.value,
     required this.unit,
@@ -208,88 +230,175 @@ class _HealthCard extends StatelessWidget {
   });
 
   @override
+  State<HealthCard> createState() => _HealthCardState();
+}
+
+class _HealthCardState extends State<HealthCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-          gradient: LinearGradient(
-            colors: [
-              Colors.blueGrey.shade50,
-              Colors.blueGrey.shade200,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 20, color: Colors.blueGrey.shade400),
-                const Spacer(),
-                Text(
-                  target,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey,
+      child: ValueListenableBuilder<int?>(
+        valueListenable: widget.selectedNotifier,
+        builder: (context, selectedIndex, _) {
+          final bool isSelected = selectedIndex == widget.index;
+          final bool active = isSelected || _isHovered;
+
+          return MouseRegion(
+            onEnter: (_) => setState(() => _isHovered = true),
+            onExit: (_) => setState(() => _isHovered = false),
+
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(15),
+
+              child: InkWell(
+                borderRadius: BorderRadius.circular(15),
+                splashColor: AppColors.primaryGreen.withValues(alpha: 0.2),
+
+                onTap: () {
+                  // toggle but ensure only one at a time
+                  widget.selectedNotifier.value =
+                      isSelected ? null : widget.index;
+                },
+
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+
+                  padding: const EdgeInsets.all(16),
+
+                  decoration: BoxDecoration(
+                    color: active ? AppColors.primaryGreen : Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+
+                    // ★ Glow border when selected
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.lightBackground
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+
+                    // ★ Outer glow shadow
+                    boxShadow: active
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primaryGreen.withValues(alpha: 0.35),
+                              blurRadius: 18,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 4),
+                            ),
+                          ]
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                  ),
+
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            widget.icon,
+                            size: 21,
+                            color: active
+                                ? Colors.white
+                                : Colors.black45,
+                          ),
+                          const Spacer(),
+                          Text(
+                            widget.target,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: active
+                                  ? Colors.white70
+                                  : Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              active ? Colors.white : Colors.black45,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            widget.value,
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: active
+                                  ? Colors.white
+                                  : AppColors.primaryGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            widget.unit,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: active
+                                  ? Colors.white70
+                                  : Colors.black45,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_rounded,
+                            size: 16,
+                            color: active
+                                ? Colors.white70
+                                : Colors.blueGrey.shade400,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.date,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: active
+                                  ? Colors.white70
+                                  : Colors.blueGrey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueGrey,
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  unit,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(Icons.calendar_today_rounded,
-                    size: 16, color: Colors.blueGrey.shade400),
-                const SizedBox(width: 8),
-                Text(
-                  date,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.blueGrey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 }
+

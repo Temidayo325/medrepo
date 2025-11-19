@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../colors.dart';
 
 class IconTextCard extends StatelessWidget {
   final String name;
@@ -42,8 +43,8 @@ class IconTextCard extends StatelessWidget {
 
     return Image.asset(
       assetPath,
-      width: 40,
-      height: 40,
+      width: 50,
+      height: 50,
       fit: BoxFit.contain,
     );
   }
@@ -53,11 +54,24 @@ class IconTextCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,   // pass modal trigger here
       borderRadius: BorderRadius.circular(12),
-      splashColor: Colors.blueGrey.withOpacity(0.1),
+      splashColor: Colors.white,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 3,
+              offset: Offset(0, 1),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -68,8 +82,8 @@ class IconTextCard extends StatelessWidget {
               name,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: Colors.blueGrey.shade800,
+                fontSize: 20,
+                color: AppColors.primaryGreen,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -80,7 +94,7 @@ class IconTextCard extends StatelessWidget {
               duration,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.blueGrey.shade600,
+                color: Colors.grey,
               ),
               textAlign: TextAlign.center,
             ),

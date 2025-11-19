@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../colors.dart';
 
 class TimeFilterRow extends StatefulWidget {
   final ValueChanged<String> onFilterSelected;
@@ -50,7 +51,7 @@ class _TimeFilterRowState extends State<TimeFilterRow> {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.blueGrey : Colors.white,
+                color: isSelected ? AppColors.primaryGreen : AppColors.lightBackground,
                 letterSpacing: 1.1,
               ),
             ),

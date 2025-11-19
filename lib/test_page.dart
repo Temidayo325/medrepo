@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
 import 'components/test_card.dart';
 import 'components/app_title.dart';
 import 'components/test/add_test.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'colors.dart';
 
 class TestResultsPage extends StatelessWidget {
   TestResultsPage({super.key});
@@ -36,11 +38,11 @@ class TestResultsPage extends StatelessWidget {
     final box = Hive.box('tests');
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppColors.lightBackground,
       appBar: CustomAppBar(
         title: 'Test results',
-        colors: Colors.white,
-        backgroundColor: Colors.blueGrey,
+        colors: AppColors.lightBackground,
+        backgroundColor: AppColors.primaryGreen,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -66,23 +68,23 @@ class TestResultsPage extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.science_rounded, size: 80, color: Colors.blueGrey.shade200),
+                          Icon(Icons.science_rounded, size: 80, color: AppColors.primaryGreen),
                           const SizedBox(height: 10),
                           Text(
                             "No tests added yet",
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.blueGrey.shade700,
+                              color: AppColors.primaryGreen,
                             ),
                           ),
                           const SizedBox(height: 12),
                           ElevatedButton.icon(
                             onPressed: () => _openAddTestSheet(context),
-                            icon: const Icon(Icons.add, color: Colors.white, size: 25),
-                            label: const Text("Add New Test", style: TextStyle(color: Colors.white)),
+                            icon: const Icon(Icons.add, color: AppColors.lightBackground, size: 25),
+                            label: const Text("Add New Test", style: TextStyle(color: AppColors.lightBackground)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blueGrey,
+                              backgroundColor: AppColors.primaryGreen,
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             ),
                           ),
@@ -110,12 +112,12 @@ class TestResultsPage extends StatelessWidget {
                             final confirmed = await showDialog<bool>(
                               context: context,
                               builder: (_) => AlertDialog(
-                                title: Text("Delete Test", style: TextStyle(color: Colors.blueGrey)),
-                                content: Text("Are you sure you want to delete this test?", style: TextStyle(color: Colors.blueGrey),),
+                                title: Text("Delete Test", style: TextStyle(color: const Color.fromARGB(255, 3, 118, 30))),
+                                content: Text("Are you sure you want to delete this test?", style: TextStyle(color: Color.fromARGB(255, 3, 118, 30)),),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(context, false),
-                                    child: Text("Cancel", style: TextStyle(color: Colors.blueGrey),),
+                                    child: Text("Cancel", style: TextStyle(color: Color.fromARGB(255, 3, 118, 30)),),
                                   ),
                                   TextButton(
                                     onPressed: () => Navigator.pop(context, true),
@@ -151,9 +153,9 @@ class TestResultsPage extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blueGrey,
+        backgroundColor: AppColors.primaryGreen,
         onPressed: () => _openAddTestSheet(context),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add, color: AppColors.lightBackground),
       ),
     );
   }
