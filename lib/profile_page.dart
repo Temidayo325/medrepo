@@ -25,6 +25,7 @@ class ProfilePage extends StatelessWidget {
       "genotype": "",
       "bmi": "",
       "conditions": "",
+      "allergies": "",
     };
 
   @override
@@ -80,7 +81,7 @@ class ProfilePage extends StatelessWidget {
 
           return SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center, // keeps vertical centering
                 // crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +135,7 @@ class ProfilePage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 15),
                           margin: EdgeInsets.symmetric(horizontal: 5, vertical: 0),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -160,9 +161,9 @@ class ProfilePage extends StatelessWidget {
                                 children:[
                                   _infoCard("${profile['age']}", "Age"),
                                   SizedBox(width: 10),
-                                  _infoCard("${profile['bmi']}", "BMI"),
+                                  _infoCard("${profile['bmi']}", "BMI", unit: "kg/m²"),
                                   SizedBox(width: 10),
-                                  _infoCard("${profile['bloodGroup']}", "Blood group"),
+                                  _infoCard("${profile['bloodGroup']}", "BG"),
                                   SizedBox(width: 10),
                                   _infoCard("${profile['genotype']}", "Genotype"),
                                 ]
@@ -187,9 +188,9 @@ class ProfilePage extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.start,
                           children: [
-                              _additionalInfo(Icons.height, "${profile['height']}"),
+                              _additionalInfo(Icons.height, "${profile['height']} cm"),
                               SizedBox(width:5),
-                              _additionalInfo(Icons.monitor_weight, "${profile['weight']}"),
+                              _additionalInfo(Icons.monitor_weight, "${profile['weight']} Kg"),
                               SizedBox(width: 5),
                               _additionalInfo(Icons.people_outline, "${profile['gender']}"),
                           ]
@@ -198,7 +199,30 @@ class ProfilePage extends StatelessWidget {
                         SizedBox(height: 35),
                         Text("Chronic features", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
                         SizedBox(height: 5),
-                        Text("${profile['conditions']}", style: TextStyle(color: Colors.black45, fontSize: 17, letterSpacing: 1.2),)
+                        Text("${profile['conditions']}", style: TextStyle(color: Colors.black45, fontSize: 17, letterSpacing: 1.2),),
+
+                        SizedBox(height: 35),
+                        Text("Allergies", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
+                        SizedBox(height: 5),
+                        Builder(
+                          builder: (_) {
+                            final allergyString = profile['allergies'] ?? '';
+                            if (allergyString.trim().isEmpty) {
+                              return Text(
+                                "None",
+                                style: TextStyle(color: Colors.black45, fontSize: 16),
+                              );
+                            }
+                            final allergies = allergyString.split(',').map((e) => e.trim()).toList();
+                            return Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: allergies.map((allergy) {
+                                return _additionalInfo(Icons.warning_amber_rounded, allergy);
+                              }).toList(),
+                            );
+                          },
+                        ),
                       ]
                     )
                     : Container(
@@ -376,20 +400,39 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _infoCard(String? value, String details) {
+  Widget _infoCard(String? value, String details, {String? unit}) {
+    final displayValue = (value == null || value.isEmpty) ? "--" : value;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            (value == null || value.isEmpty) ? "--" : value,
-            style: const TextStyle(
-              fontSize: 30,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-              color: Color.fromARGB(255, 3, 118, 30)
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                displayValue,
+                style: const TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                  color: Color.fromARGB(255, 3, 118, 30),
+                ),
+              ),
+
+              // Add spacing only if unit exists
+              if (unit != null && unit.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                Text(
+                  unit,
+                  style: const TextStyle(
+                    fontSize: 10, // smaller than value
+                    color: Color.fromARGB(255, 3, 118, 30),
+                  ),
+                ),
+              ],
+            ],
           ),
           const SizedBox(height: 6),
           Text(
@@ -403,7 +446,8 @@ class ProfilePage extends StatelessWidget {
         ],
       ),
     );
-  }
+}
+
 
   Widget _additionalInfo(IconData icon, String? text)
   {

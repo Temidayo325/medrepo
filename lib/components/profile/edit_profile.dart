@@ -18,7 +18,8 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
       "bmi": "",
       "conditions": "",
       "height": "",
-      "weight": ""
+      "weight": "",
+      "allergies": "",
     }),
   );
 
@@ -34,8 +35,9 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
   final heightCtrl = TextEditingController(text: profile["height"]);
   final weightCtrl = TextEditingController(text: profile["weight"]);
   final conditionsCtrl = TextEditingController(text: profile["conditions"]);
+  final allergiesCtrl = TextEditingController(text: profile["allergies"]);
 
-  final _formKey = GlobalKey<FormState>();
+  final formKey = GlobalKey<FormState>();
 
   // BMI calculation logic
   void calculateBMI() {
@@ -76,7 +78,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
           ),
           child: SingleChildScrollView(
             child: Form(
-              key: _formKey,
+              key: formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -165,6 +167,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                   ),
 
                   _buildField("Chronic Conditions", conditionsCtrl),
+                  _buildField("Allergies", allergiesCtrl, hint: "Separate each allergy using a comma(,)"),
                   const SizedBox(height: 30),
 
                   Center(
@@ -176,7 +179,7 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                       onPressed: () async {
-                        if (!_formKey.currentState!.validate()) return;
+                        if (!formKey.currentState!.validate()) return;
 
                         final updatedProfile = {
                           "name": nameCtrl.text,
@@ -188,8 +191,9 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
                           "genotype": genotypeCtrl.text,
                           "height": heightCtrl.text,
                           "weight": weightCtrl.text,
-                          "bmi": bmiCtrl.text,
+                          "bmi": bmiCtrl.text.replaceAll(RegExp(r'[^0-9.]'), ''),
                           "conditions": conditionsCtrl.text,
+                          "allergies": allergiesCtrl.text,
                         };
 
                         showDialog(
@@ -238,8 +242,13 @@ Future<void> showEditProfileBottomSheet(BuildContext context) async {
 }
 
 // === Helper Widgets ===
-Widget _buildField(String label, TextEditingController controller,
-    {TextInputType type = TextInputType.text, String? Function(String?)? validator}) {
+Widget _buildField(
+  String label,
+  TextEditingController controller, {
+  TextInputType type = TextInputType.text,
+  String? Function(String?)? validator,
+  String? hint, // <-- NEW OPTIONAL PARAMETER
+}) {
   return Padding(
     padding: const EdgeInsets.only(bottom: 15),
     child: TextFormField(
@@ -248,6 +257,8 @@ Widget _buildField(String label, TextEditingController controller,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hint, // <-- APPLIED HERE
+        hintStyle: const TextStyle(color: Colors.grey),
         labelStyle: const TextStyle(color: Color.fromARGB(255, 2, 105, 29)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
@@ -260,6 +271,7 @@ Widget _buildField(String label, TextEditingController controller,
     ),
   );
 }
+
 
 Widget _buildGenderField(String label, String? selectedGender, Function(String?) onChanged) {
   return Padding(
