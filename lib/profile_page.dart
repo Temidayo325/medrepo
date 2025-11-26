@@ -361,37 +361,72 @@ class ProfilePage extends StatelessWidget {
                     ),
                     onPressed: () async {
                       final LocalAuthentication auth = LocalAuthentication();
-                      final bool canAuthenticate = await auth.isDeviceSupported();
                       bool isAuthenticated = false;
-                      if (canAuthenticate) {
-                        try {
+                      try {
+                        final bool hasBiometrics = await auth.canCheckBiometrics;
+                        if (hasBiometrics) {
+                          // Samsung-friendly: biometricOnly must be TRUE
                           isAuthenticated = await auth.authenticate(
-                            localizedReason: 'Please authenticate to view your viral panel',
+                            localizedReason: 'Use your fingerprint to continue',
                             options: const AuthenticationOptions(
+                              biometricOnly: true,
                               stickyAuth: true,
-                              biometricOnly: false,
                             ),
                           );
-                        } catch (e) {
-                          isAuthenticated = false;
+                        } else {
+                          // No biometrics enrolled → fallback to confirmation dialog
+                          isAuthenticated = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text("Confirm Access"),
+                                  backgroundColor: AppColors.lightBackground,
+                                  content: const Text(
+                                    "This device has no biometric or PIN security enabled. Proceed to view the panel?",
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: const Text("Cancel",
+                                          style: TextStyle(
+                                              color: Color.fromARGB(255, 51, 146, 78))),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: const Text("Authorize",
+                                          style: TextStyle(
+                                            color: Color.fromARGB(255, 51, 146, 78),
+                                            fontWeight: FontWeight.bold,
+                                          )),
+                                    ),
+                                  ],
+                                ),
+                              ) ??
+                              false;
                         }
-                      } else {
-                        // Fallback for devices without security
+                      } catch (e) {
+                        // Any unexpected error → allow fallback
                         isAuthenticated = await showDialog<bool>(
                               context: context,
                               builder: (ctx) => AlertDialog(
                                 title: const Text("Confirm Access"),
                                 backgroundColor: AppColors.lightBackground,
-                                content: Text(
-                                    "This device has no security check enabled. Proceed to view the panel?"),
+                                content: const Text(
+                                  "Security check could not be completed. Proceed anyway?",
+                                ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, false),
-                                    child: Text("Cancel", style: TextStyle(color: const Color.fromARGB(255, 51, 146, 78)),),
+                                    child: const Text("Cancel",
+                                        style: TextStyle(
+                                            color: Color.fromARGB(255, 51, 146, 78))),
                                   ),
                                   TextButton(
                                     onPressed: () => Navigator.pop(ctx, true),
-                                    child: Text("Authorize", style: TextStyle(color: const Color.fromARGB(255, 51, 146, 78), fontWeight: FontWeight.bold),),
+                                    child: const Text("Authorize",
+                                        style: TextStyle(
+                                          color: Color.fromARGB(255, 51, 146, 78),
+                                          fontWeight: FontWeight.bold,
+                                        )),
                                   ),
                                 ],
                               ),
@@ -406,9 +441,8 @@ class ProfilePage extends StatelessWidget {
 
                         await showViralPanelBottomSheet(context, currentList);
                       } else {
-                        // Optionally show a message if authentication failed
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Authorization failed!")),
+                          const SnackBar(content: Text("Authentication failed")),
                         );
                       }
                     },
