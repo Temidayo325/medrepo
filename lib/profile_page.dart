@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:local_auth/local_auth.dart';
 
 import 'components/profile/profile_picure.dart';
 import 'components/profile/profile_info.dart';
 import 'components/profile/add_emergency_contact.dart';
+import 'components/profile/viral_panel.dart';
 import 'components/profile/edit_profile.dart';
+import 'components/empty_state.dart';
 import 'colors.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -14,6 +17,12 @@ class ProfilePage extends StatelessWidget {
     'contact1': {'name': '', 'phone': '', 'email': ''},
     'contact2': {'name': '', 'phone': '', 'email': ''},
   };
+  
+  final List<Map<String, String>> defaultViralPanel = [
+    {'full_name': '','short_name': '','result': '','date': '',},
+    {'full_name': '','short_name': '','result': '','date': '',},
+    {'full_name': '','short_name': '','result': '','date': '',},
+  ];
 
   final Map<String, dynamic> defaultProfile = {
       "name": "",
@@ -31,6 +40,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emergencyBox = Hive.box('emergencyContacts');
+    final viralPanelBox = Hive.box('viralPanel');
     final profileBox = Hive.box('profile');
 
     return Scaffold(
@@ -264,7 +274,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
 
-                  SizedBox(height: 20),
+                  SizedBox(height: 35),
 
                   /// EMERGENCY CONTACTS - Enhanced empty state (side by side)
                   ValueListenableBuilder(
@@ -300,7 +310,7 @@ class ProfilePage extends StatelessWidget {
                                       _infoRow(Icons.email, c1['email'] ?? '', compact: true),
                                     ],
                                   )
-                                : _emptyContactState(),
+                                : EmptyState(icon: Icons.person_add_outlined, message: "No Contact Added"),
                             ),
                           ),
                           SizedBox(width: 12),
@@ -318,17 +328,14 @@ class ProfilePage extends StatelessWidget {
                                       _infoRow(Icons.email, c2['email'] ?? '', compact: true),
                                     ],
                                   )
-                                : _emptyContactState(),
+                                : EmptyState(icon: Icons.person_add_outlined, message: "No Contact Added"),
                             ),
                           ),
                         ],
                       );
                     },
                   ),
-
                   SizedBox(height: 25),
-
-                  /// BUTTON
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey.shade200,
@@ -345,6 +352,68 @@ class ProfilePage extends StatelessWidget {
                     child: Text('Edit Emergency Contacts',
                         style: TextStyle(color: Colors.blueGrey)),
                   ),
+                  SizedBox(height: 30),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade200,
+                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: () async {
+                      final LocalAuthentication auth = LocalAuthentication();
+                      final bool canAuthenticate = await auth.isDeviceSupported();
+                      bool isAuthenticated = false;
+                      if (canAuthenticate) {
+                        try {
+                          isAuthenticated = await auth.authenticate(
+                            localizedReason: 'Please authenticate to view your viral panel',
+                            options: const AuthenticationOptions(
+                              stickyAuth: true,
+                              biometricOnly: false,
+                            ),
+                          );
+                        } catch (e) {
+                          isAuthenticated = false;
+                        }
+                      } else {
+                        // Fallback for devices without security
+                        isAuthenticated = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text("Confirm Access"),
+                                backgroundColor: AppColors.lightBackground,
+                                content: Text(
+                                    "This device has no security check enabled. Proceed to view the panel?"),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: Text("Cancel", style: TextStyle(color: const Color.fromARGB(255, 51, 146, 78)),),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: Text("Authorize", style: TextStyle(color: const Color.fromARGB(255, 51, 146, 78), fontWeight: FontWeight.bold),),
+                                  ),
+                                ],
+                              ),
+                            ) ??
+                            false;
+                      }
+
+                      if (isAuthenticated) {
+                        final currentList = List<Map<String, String>>.from(
+                          viralPanelBox.get('viralPanel', defaultValue: defaultViralPanel),
+                        );
+
+                        await showViralPanelBottomSheet(context, currentList);
+                      } else {
+                        // Optionally show a message if authentication failed
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Authorization failed!")),
+                        );
+                      }
+                    },
+                    child: const Text('Viral Panel', style: TextStyle(color: Colors.blueGrey)),
+                  ),
                 ],
               ),
             ),
@@ -353,33 +422,6 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-
-  /// Empty state for contacts
-  Widget _emptyContactState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Column(
-          children: [
-            Icon(
-              Icons.person_add_outlined,
-              size: 32,
-              color: AppColors.primaryGreen,
-            ),
-            SizedBox(height: 8),
-            Text(
-              "No contact added",
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.primaryGreen,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// Reusable icon row
   Widget _infoRow(IconData icon, String? text, {bool compact = false}) {
     return Row(

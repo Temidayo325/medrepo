@@ -32,9 +32,9 @@ class ProfileInfoCard extends StatelessWidget {
         children: [
           Text(
             header,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 15,
               color: Color.fromARGB(255, 3, 118, 30),
             ),
           ),

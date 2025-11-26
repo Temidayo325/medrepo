@@ -8,7 +8,8 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('tests');
   await Hive.openBox('emergencyContacts'); // box to store all test records
-  await Hive.openBox('profile'); // box to store all test records
+  await Hive.openBox('profile'); 
+  await Hive.openBox('viralPanel');
   // final box = await Hive.openBox('profile'); // box to store all test records
 
   // Only clear the box during development
