@@ -36,6 +36,35 @@ class ProfilePage extends StatelessWidget {
       "conditions": "",
       "allergies": "",
     };
+  Future<bool> _showConfirmationDialog(BuildContext context, String message) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Confirm Access"),
+        backgroundColor: AppColors.lightBackground,
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              "Cancel",
+              style: TextStyle(color: Color.fromARGB(255, 51, 146, 78)),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              "Authorize",
+              style: TextStyle(
+                color: Color.fromARGB(255, 51, 146, 78),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -362,83 +391,57 @@ class ProfilePage extends StatelessWidget {
                     onPressed: () async {
                       final LocalAuthentication auth = LocalAuthentication();
                       bool isAuthenticated = false;
+                      
                       try {
-                        final bool hasBiometrics = await auth.canCheckBiometrics;
-                        if (hasBiometrics) {
-                          // Samsung-friendly: biometricOnly must be TRUE
-                          isAuthenticated = await auth.authenticate(
-                            localizedReason: 'Use your fingerprint to continue',
-                            options: const AuthenticationOptions(
-                              biometricOnly: true,
-                              stickyAuth: true,
-                            ),
+                        // Check if device supports authentication (has PIN, pattern, or biometrics)
+                        final bool isDeviceSupported = await auth.isDeviceSupported();
+                        
+                        if (!isDeviceSupported) {
+                          // Device doesn't support any authentication method
+                          isAuthenticated = await _showConfirmationDialog(
+                            context,
+                            "This device doesn't support secure authentication. Proceed to view the panel?",
                           );
                         } else {
-                          // No biometrics enrolled → fallback to confirmation dialog
-                          isAuthenticated = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  title: const Text("Confirm Access"),
-                                  backgroundColor: AppColors.lightBackground,
-                                  content: const Text(
-                                    "This device has no biometric or PIN security enabled. Proceed to view the panel?",
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(ctx, false),
-                                      child: const Text("Cancel",
-                                          style: TextStyle(
-                                              color: Color.fromARGB(255, 51, 146, 78))),
-                                    ),
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(ctx, true),
-                                      child: const Text("Authorize",
-                                          style: TextStyle(
-                                            color: Color.fromARGB(255, 51, 146, 78),
-                                            fontWeight: FontWeight.bold,
-                                          )),
-                                    ),
-                                  ],
-                                ),
-                              ) ??
-                              false;
+                          // Device supports authentication - check what's available
+                          final bool canCheckBiometrics = await auth.canCheckBiometrics;
+                          final List<BiometricType> availableBiometrics = 
+                              await auth.getAvailableBiometrics();
+                          
+                          if (canCheckBiometrics && availableBiometrics.isNotEmpty) {
+                            // Biometrics are enrolled - use biometric authentication
+                            isAuthenticated = await auth.authenticate(
+                              localizedReason: 'Use your fingerprint to continue',
+                              options: const AuthenticationOptions(
+                                biometricOnly: false, // Allow PIN/pattern fallback
+                                stickyAuth: true,
+                              ),
+                            );
+                          } else {
+                            // Only PIN/pattern available (no biometrics enrolled)
+                            // Try to authenticate with device credentials
+                            isAuthenticated = await auth.authenticate(
+                              localizedReason: 'Authenticate to continue',
+                              options: const AuthenticationOptions(
+                                biometricOnly: false,
+                                stickyAuth: true,
+                              ),
+                            );
+                          }
                         }
                       } catch (e) {
-                        // Any unexpected error → allow fallback
-                        isAuthenticated = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text("Confirm Access"),
-                                backgroundColor: AppColors.lightBackground,
-                                content: const Text(
-                                  "Security check could not be completed. Proceed anyway?",
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, false),
-                                    child: const Text("Cancel",
-                                        style: TextStyle(
-                                            color: Color.fromARGB(255, 51, 146, 78))),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(ctx, true),
-                                    child: const Text("Authorize",
-                                        style: TextStyle(
-                                          color: Color.fromARGB(255, 51, 146, 78),
-                                          fontWeight: FontWeight.bold,
-                                        )),
-                                  ),
-                                ],
-                              ),
-                            ) ??
-                            false;
+                        // Handle authentication errors
+                        print('Authentication error: $e');
+                        isAuthenticated = await _showConfirmationDialog(
+                          context,
+                          "Security check could not be completed. Proceed anyway?",
+                        );
                       }
 
                       if (isAuthenticated) {
                         final currentList = List<Map<String, String>>.from(
                           viralPanelBox.get('viralPanel', defaultValue: defaultViralPanel),
                         );
-
                         await showViralPanelBottomSheet(context, currentList);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -523,8 +526,7 @@ class ProfilePage extends StatelessWidget {
       ),
     );
 }
-
-
+  
   Widget _additionalInfo(IconData icon, String? text)
   {
     return Container(

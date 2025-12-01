@@ -18,6 +18,7 @@ dependencies:
   hive_flutter: ^1.1.0
   cupertino_icons: ^1.0.8
   local_auth: ^2.2.0
+  http: ^1.1.0
 
 dev_dependencies:
   flutter_test:
@@ -31,13 +32,14 @@ flutter:
   assets:
     - assets/
     - assets/dosage_form/
+    - assets/medrepo_logo.svg
 
 # ----------------------------------------------------------
 # 🟢 NATIVE SPLASH SCREEN CONFIG (Recommended Setup)
 # ----------------------------------------------------------
 flutter_native_splash:
-  color: "#f7f8fc"        # Your primary green
-  image: assets/splash.png   # <-- put your logo here
+  color: "#f7f8fc"
+  image: assets/splash.png   
   android: true
   ios: true
 

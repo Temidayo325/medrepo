@@ -88,7 +88,7 @@ class MedicationDetailsSheet extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Pill Name',
+                            'Drug Name',
                             style: TextStyle(fontWeight: FontWeight.normal, fontSize: 14, color: Colors.grey),
                           ),
                           SizedBox(height: 4),

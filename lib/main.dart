@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'root_page.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:flutter/foundation.dart';
+// import 'package:flutter/foundation.dart';
+import  'register.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -10,7 +11,10 @@ void main() async {
   await Hive.openBox('emergencyContacts'); // box to store all test records
   await Hive.openBox('profile'); 
   await Hive.openBox('viralPanel');
-  // final box = await Hive.openBox('profile'); // box to store all test records
+  // Hive.box('auth').put('isRegistered', true);
+  await Hive.openBox('token');
+  await Hive.openBox('register');
+  // final box = await Hive.openBox('profile'); // box to store user profile
 
   // Only clear the box during development
   // if (kDebugMode) {
@@ -24,9 +28,12 @@ class MyApp extends StatelessWidget
 {
   @override
   Widget build(BuildContext context) {
+    final authBox = Hive.box('register');
+    final isRegistered = authBox.get('isRegistered', defaultValue: false);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: RootPage()
+      home: isRegistered ? RootPage() : RegistrationScreen(),
     );
   }
 }
