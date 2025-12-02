@@ -54,29 +54,43 @@ class _EmergencyContactsFlowState extends State<EmergencyContactsFlow>
     try {
       final box = Hive.box('emergencyContacts');
       final saved = box.get('contacts', defaultValue: []);
-      if (saved is List && saved.isNotEmpty) {
-        if (saved.length > 0 && saved[0] is Map) {
-          final c = Map<String, dynamic>.from(saved[0]);
-          c1Id = c['id'] is int ? c['id'] as int : (c['id'] is String ? int.tryParse(c['id']) : null);
-          c1Name.text = (c['name'] ?? '').toString();
-          c1Rel.text = (c['relationship'] ?? '').toString();
-          c1Phone.text = (c['phone'] ?? '').toString();
-          c1Email.text = (c['email'] ?? '').toString();
+
+      if (saved is! List || saved.isEmpty) return;
+
+      Map<String, dynamic> _safeMap(dynamic raw) {
+        if (raw is Map) {
+          return raw.map((k, v) => MapEntry(k.toString(), v));
         }
-        if (saved.length > 1 && saved[1] is Map) {
-          final c = Map<String, dynamic>.from(saved[1]);
-          c2Id = c['id'] is int ? c['id'] as int : (c['id'] is String ? int.tryParse(c['id']) : null);
-          c2Name.text = (c['name'] ?? '').toString();
-          c2Rel.text = (c['relationship'] ?? '').toString();
-          c2Phone.text = (c['phone'] ?? '').toString();
-          c2Email.text = (c['email'] ?? '').toString();
-        }
+        return {};
       }
+
+      // CONTACT 1
+      if (saved.length > 0) {
+        final c = _safeMap(saved[0]);
+
+        c1Id = int.tryParse(c['id']?.toString() ?? '');
+        c1Name.text = c['name']?.toString() ?? '';
+        c1Rel.text = c['relationship']?.toString() ?? '';
+        c1Phone.text = c['phone']?.toString() ?? '';
+        c1Email.text = c['email']?.toString() ?? '';
+      }
+
+      // CONTACT 2
+      if (saved.length > 1) {
+        final c = _safeMap(saved[1]);
+
+        c2Id = int.tryParse(c['id']?.toString() ?? '');
+        c2Name.text = c['name']?.toString() ?? '';
+        c2Rel.text = c['relationship']?.toString() ?? '';
+        c2Phone.text = c['phone']?.toString() ?? '';
+        c2Email.text = c['email']?.toString() ?? '';
+      }
+
     } catch (e) {
-      // ignore read errors — auto-fill is best-effort
       debugPrint("EmergencyContactsFlow: failed to load saved contacts: $e");
     }
   }
+
 
   @override
   void dispose() {
@@ -237,7 +251,7 @@ class _EmergencyContactsFlowState extends State<EmergencyContactsFlow>
         hintText: hint,
         labelStyle: TextStyle(color: AppColors.darkGreen),
         filled: true,
-        fillColor: AppColors.primaryGreen.withOpacity(0.08),
+        fillColor: AppColors.primaryGreen.withValues(alpha: 0.08),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       ),

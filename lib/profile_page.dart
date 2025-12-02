@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-// import 'components/send_post_request.dart';
-// import 'components/snackbar/error.dart';
-// import 'components/snackbar/success.dart';
-// import 'components/loader.dart';
 import 'components/profile/edit_health_record.dart';
 import 'components/profile/add_emergency_contact.dart';
 import 'colors.dart';
@@ -12,46 +8,71 @@ import 'colors.dart';
 class ProfilePage extends StatelessWidget {
   ProfilePage({super.key});
 
-  // Calculate BMI
-  double? calculateBMI(String? height, String? weight) {
-    if (height == null || weight == null || height.isEmpty || weight.isEmpty) {
-      return null;
-    }
+  // Calculate BMI safely
+  double? calculateBMI(dynamic height, dynamic weight) {
+    if (height == null || weight == null) return null;
     try {
-      final h = double.parse(height) / 100; // convert cm to m
-      final w = double.parse(weight);
-      return w / (h * h);
+      final h = double.parse(height.toString());
+      final w = double.parse(weight.toString());
+      if (h <= 0 || w <= 0) return null;
+      final heightInMeters = h / 100;
+      return w / (heightInMeters * heightInMeters);
     } catch (e) {
+      debugPrint('BMI calculation error: $e');
       return null;
     }
   }
 
-  Future<bool> _showConfirmationDialog(BuildContext context, String message) async {
-    return await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Confirm Access"),
-        backgroundColor: AppColors.lightBackground,
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.primaryGreen)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Authorize", style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    ) ?? false;
+  // Safe string getter
+  String _safeString(dynamic value, [String defaultValue = '—']) {
+    if (value == null) return defaultValue;
+    final str = value.toString().trim();
+    return str.isEmpty ? defaultValue : str;
+  }
+
+  // Check if data exists
+  bool _hasData(Map<String, dynamic> data, List<String> keys) {
+    return keys.any((key) {
+      final value = data[key];
+      if (value == null) return false;
+      if (value is String) return value.trim().isNotEmpty;
+      if (value is num) return value > 0;
+      return true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final profileBox = Hive.box('profile');
-    final patientProfileBox = Hive.box('patientProfile');
-    final emergencyContactsBox = Hive.box('emergencyContacts');
+    // Safely get boxes with error handling
+    late Box profileBox;
+    late Box patientProfileBox;
+    late Box emergencyContactsBox;
+
+    try {
+      profileBox = Hive.box('profile');
+      patientProfileBox = Hive.box('patientProfile');
+      emergencyContactsBox = Hive.box('emergencyContacts');
+    } catch (e) {
+      debugPrint('Error opening Hive boxes: $e');
+      return Scaffold(
+        backgroundColor: AppColors.lightBackground,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                'Error loading profile data',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Text('Please restart the app'),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -72,11 +93,33 @@ class ProfilePage extends StatelessWidget {
       body: ValueListenableBuilder(
         valueListenable: profileBox.listenable(),
         builder: (context, box, _) {
-          final profile = Map<String, dynamic>.from(
-            box.toMap()..removeWhere((key, value) => key == 'id' || key == 'identifier'),
-          );
+          // Safely get profile data
+          Map<String, dynamic> profile = {};
+          try {
+            final rawData = box.toMap();
+            // Convert top-level map keys to String
+            profile = rawData.map((key, value) {
+              // If value is a Map (like emergency contacts), convert it recursively
+              if (value is Map) {
+                return MapEntry(key.toString(), Map<String, dynamic>.from(value));
+              } 
+              // If value is a List of Maps, convert each Map
+              else if (value is List) {
+                return MapEntry(
+                  key.toString(),
+                  value.map((e) => e is Map ? Map<String, dynamic>.from(e) : e).toList(),
+                );
+              } 
+              else {
+                return MapEntry(key.toString(), value);
+              }
+            })
+            ..removeWhere((key, value) => key == 'id' || key == 'identifier' || key == 'api_token');
+          } catch (e) {
+            debugPrint('Error reading profile box: $e');
+          }
 
-          final hasProfileData = (profile['name'] ?? '').toString().isNotEmpty;
+          final hasProfileData = _hasData(profile, ['name', 'email', 'phone']);
 
           return SingleChildScrollView(
             child: Padding(
@@ -84,7 +127,7 @@ class ProfilePage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Profile Avatar & Basic Info
+                  // ========== PROFILE AVATAR & NAME ==========
                   Center(
                     child: Column(
                       children: [
@@ -95,7 +138,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                         SizedBox(height: 15),
                         Text(
-                          hasProfileData ? profile['name'] ?? 'No Name' : 'Your Profile',
+                          _safeString(profile['name'], 'Your Profile'),
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -114,7 +157,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                   SizedBox(height: 30),
 
-                  // Basic Profile Section
+                  // ========== BASIC INFORMATION SECTION ==========
                   _SectionHeader(
                     title: 'Basic Information',
                     onEdit: () => _showEditBasicInfoDialog(context, profile),
@@ -124,34 +167,57 @@ class ProfilePage extends StatelessWidget {
                     child: hasProfileData
                         ? Column(
                             children: [
-                              _InfoRow(Icons.email, 'Email', profile['email'] ?? '—'),
+                              _InfoRow(Icons.email, 'Email', _safeString(profile['email'])),
                               Divider(height: 24),
-                              _InfoRow(Icons.phone, 'Phone', profile['phone'] ?? '—'),
+                              _InfoRow(Icons.phone, 'Phone', _safeString(profile['phone'])),
                               Divider(height: 24),
-                              _InfoRow(Icons.cake, 'Date of Birth', profile['date_of_birth'] ?? '—'),
+                              _InfoRow(Icons.cake, 'Date of Birth', _safeString(profile['date_of_birth'])),
                               Divider(height: 24),
-                              _InfoRow(Icons.wc, 'Gender', profile['gender'] ?? '—'),
+                              _InfoRow(Icons.wc, 'Gender', _safeString(profile['gender'])),
                             ],
                           )
                         : Center(
                             child: Padding(
                               padding: const EdgeInsets.all(20),
-                              child: Text('No basic info added', style: TextStyle(color: Colors.grey)),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.info_outline, size: 48, color: Colors.grey[400]),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'No basic info added',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Tap Edit to add your information',
+                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                   ),
                   SizedBox(height: 30),
 
-                  // Patient Profile Section (Height, Weight, BMI, Conditions, Allergies)
+                  // ========== HEALTH INFORMATION SECTION ==========
                   ValueListenableBuilder(
                     valueListenable: patientProfileBox.listenable(),
                     builder: (context, box, _) {
-                      final patientProfile = Map<String, dynamic>.from(box.toMap());
-                      final hasPatientProfile = patientProfile.isNotEmpty;
+                      Map<String, dynamic> patientProfile = {};
+                      try {
+                        patientProfile = Map<String, dynamic>.from(box.toMap());
+                      } catch (e) {
+                        debugPrint('Error reading patient profile box: $e');
+                      }
+
+                      final hasPatientProfile = _hasData(
+                        patientProfile,
+                        ['height', 'weight', 'chronic_conditions', 'allergies'],
+                      );
 
                       final bmi = calculateBMI(
-                        patientProfile['height']?.toString(),
-                        patientProfile['weight']?.toString(),
+                        patientProfile['height'],
+                        patientProfile['weight'],
                       );
 
                       return Column(
@@ -170,29 +236,62 @@ class ProfilePage extends StatelessWidget {
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                                         children: [
-                                          _StatCard('Height', '${patientProfile['height'] ?? '—'}', 'cm'),
-                                          _StatCard('Weight', '${patientProfile['weight'] ?? '—'}', 'kg'),
-                                          _StatCard('BMI', bmi != null ? bmi.toStringAsFixed(1) : '—', 'kg/m2'),
+                                          _StatCard(
+                                            'Height',
+                                            _safeString(patientProfile['height']),
+                                            'cm',
+                                          ),
+                                          _StatCard(
+                                            'Weight',
+                                            _safeString(patientProfile['weight']),
+                                            'kg',
+                                          ),
+                                          _StatCard(
+                                            'BMI',
+                                            bmi != null ? bmi.toStringAsFixed(1) : '—',
+                                            'kg/m²',
+                                          ),
                                         ],
                                       ),
-                                      Divider(height: 32),
-                                      _InfoRow(
-                                        Icons.local_hospital,
-                                        'Chronic Conditions',
-                                        patientProfile['chronic_conditions'] ?? 'None',
-                                      ),
-                                      Divider(height: 24),
-                                      _InfoRow(
-                                        Icons.warning_amber_rounded,
-                                        'Allergies',
-                                        patientProfile['allergies'] ?? 'None',
-                                      ),
+                                      if (_safeString(patientProfile['chronic_conditions']) != '—' ||
+                                          _safeString(patientProfile['allergies']) != '—') ...[
+                                        Divider(height: 32),
+                                      ],
+                                      if (_safeString(patientProfile['chronic_conditions']) != '—') ...[
+                                        _InfoRow(
+                                          Icons.local_hospital,
+                                          'Chronic Conditions',
+                                          _safeString(patientProfile['chronic_conditions']),
+                                        ),
+                                        if (_safeString(patientProfile['allergies']) != '—')
+                                          Divider(height: 24),
+                                      ],
+                                      if (_safeString(patientProfile['allergies']) != '—')
+                                        _InfoRow(
+                                          Icons.warning_amber_rounded,
+                                          'Allergies',
+                                          _safeString(patientProfile['allergies']),
+                                        ),
                                     ],
                                   )
                                 : Center(
                                     child: Padding(
                                       padding: const EdgeInsets.all(20),
-                                      child: Text('No health info added', style: TextStyle(color: Colors.grey)),
+                                      child: Column(
+                                        children: [
+                                          Icon(Icons.health_and_safety_outlined, size: 48, color: Colors.grey[400]),
+                                          SizedBox(height: 12),
+                                          Text(
+                                            'No health info added',
+                                            style: TextStyle(color: Colors.grey[600]),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            'Tap Edit to add your health details',
+                                            style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                           ),
@@ -202,14 +301,22 @@ class ProfilePage extends StatelessWidget {
                   ),
                   SizedBox(height: 30),
 
-                  // Emergency Contacts Section
+                  // ========== EMERGENCY CONTACTS SECTION ==========
                   ValueListenableBuilder(
                     valueListenable: emergencyContactsBox.listenable(),
                     builder: (context, box, _) {
-                      final contacts = List<Map<String, dynamic>>.from(
-                        box.get('contacts', defaultValue: []),
-                      );
-
+                      List<Map<String, dynamic>> contacts = [];
+                        try {
+                          final raw = box.get('contacts', defaultValue: []);
+                          if (raw is List) {
+                            contacts = raw
+                                .whereType<Map>() // only maps
+                                .map((m) => m.map((k, v) => MapEntry(k.toString(), v)))
+                                .toList();
+                          }
+                        } catch (e) {
+                          debugPrint('Error reading emergency contacts: $e');
+                        }
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -223,7 +330,21 @@ class ProfilePage extends StatelessWidget {
                               child: Center(
                                 child: Padding(
                                   padding: const EdgeInsets.all(20),
-                                  child: Text('No emergency contacts added', style: TextStyle(color: Colors.grey)),
+                                  child: Column(
+                                    children: [
+                                      Icon(Icons.person_add_outlined, size: 48, color: Colors.grey[400]),
+                                      SizedBox(height: 12),
+                                      Text(
+                                        'No emergency contacts added',
+                                        style: TextStyle(color: Colors.grey[600]),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Tap Edit to add contacts',
+                                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             )
@@ -245,7 +366,7 @@ class ProfilePage extends StatelessWidget {
                                             SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                contact['name'] ?? 'Unknown',
+                                                _safeString(contact['name'], 'Unknown'),
                                                 style: TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,
@@ -257,24 +378,28 @@ class ProfilePage extends StatelessWidget {
                                           ],
                                         ),
                                         SizedBox(height: 8),
-                                        _InfoRow(Icons.family_restroom, 'Relationship', contact['relationship'] ?? '—'),
+                                        _InfoRow(
+                                          Icons.family_restroom,
+                                          'Relationship',
+                                          _safeString(contact['relationship']),
+                                        ),
                                         Divider(height: 16),
-                                        _InfoRow(Icons.phone, 'Phone', contact['phone'] ?? '—'),
+                                        _InfoRow(Icons.phone, 'Phone', _safeString(contact['phone'])),
                                         Divider(height: 16),
-                                        _InfoRow(Icons.email, 'Email', contact['email'] ?? '—'),
+                                        _InfoRow(Icons.email, 'Email', _safeString(contact['email'])),
                                       ],
                                     ),
                                   ),
                                 ),
                               );
-                            }).toList(),
+                            }),
                         ],
                       );
                     },
                   ),
                   SizedBox(height: 30),
 
-                  // Viral Panel Button
+                  // ========== VIRAL PANEL BUTTON ==========
                   Center(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -285,7 +410,6 @@ class ProfilePage extends StatelessWidget {
                       icon: Icon(Icons.biotech, color: Colors.white),
                       label: Text('View Viral Panel', style: TextStyle(color: Colors.white, fontSize: 16)),
                       onPressed: () async {
-                        // Authentication logic here (same as before)
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Viral panel feature coming soon')),
                         );
@@ -304,10 +428,15 @@ class ProfilePage extends StatelessWidget {
 
   // Edit Basic Info Dialog
   void _showEditBasicInfoDialog(BuildContext context, Map<String, dynamic> currentData) {
-    final emailController = TextEditingController(text: currentData['email']);
-    final phoneController = TextEditingController(text: currentData['phone']);
-    final dobController = TextEditingController(text: currentData['date_of_birth']);
-    String? selectedGender = currentData['gender'];
+    final emailController = TextEditingController(text: _safeString(currentData['email'], ''));
+    final phoneController = TextEditingController(text: _safeString(currentData['phone'], ''));
+    final dobController = TextEditingController(text: _safeString(currentData['date_of_birth'], ''));
+    String? selectedGender = _safeString(currentData['gender'], '').trim();
+    if (selectedGender.isEmpty || selectedGender == '—') {
+      selectedGender = null;
+    } else {
+      selectedGender = selectedGender[0].toUpperCase() + selectedGender.substring(1).toLowerCase();
+    }
 
     showModalBottomSheet(
       context: context,
@@ -373,14 +502,25 @@ class ProfilePage extends StatelessWidget {
                 ),
                 SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: selectedGender,
+                  initialValue: selectedGender,
                   decoration: InputDecoration(
                     labelText: 'Gender',
                     prefixIcon: Icon(Icons.wc),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
-                  onChanged: (val) => setState(() => selectedGender = val),
+                  items: ['Male', 'Female', 'Other']
+                      .map((g) => DropdownMenuItem(
+                            value: g,
+                            child: Text(g),
+                          ))
+                      .toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      selectedGender = val;
+                    });
+                  },
                 ),
                 SizedBox(height: 24),
                 ElevatedButton(
@@ -390,25 +530,38 @@ class ProfilePage extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: () async {
-                    // Update basic profile (API call to patient update endpoint)
                     final payload = {
-                      'email': emailController.text,
-                      'phone': phoneController.text,
+                      'email': emailController.text.trim(),
+                      'phone': phoneController.text.trim(),
                       'date_of_birth': dobController.text,
                       'gender': selectedGender?.toLowerCase(),
                     };
-                    
-                    // TODO: Make API call here
-                    // final response = await http.put(...);
-                    
-                    // Update local storage
-                    final profileBox = Hive.box('profile');
-                    await profileBox.putAll(payload);
-                    
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Basic information updated'), backgroundColor: AppColors.success),
-                    );
+
+                    try {
+                      // Update local storage
+                      final profileBox = Hive.box('profile');
+                      await profileBox.putAll(payload);
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Basic information updated'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      debugPrint('Error updating profile: $e');
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error updating profile'),
+                            backgroundColor: AppColors.error,
+                          ),
+                        );
+                      }
+                    }
                   },
                   child: Text('Save Changes', style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
@@ -419,10 +572,10 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-  
 }
 
-// Reusable Widgets
+// ========== REUSABLE WIDGETS ==========
+
 class _SectionHeader extends StatelessWidget {
   final String title;
   final VoidCallback onEdit;
@@ -493,7 +646,7 @@ class _InfoRow extends StatelessWidget {
               Text(label, style: TextStyle(fontSize: 12, color: Colors.grey)),
               SizedBox(height: 2),
               Text(
-                value.isEmpty ? '—' : value,
+                value,
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
               ),
             ],
@@ -523,7 +676,7 @@ class _StatCard extends StatelessWidget {
             color: AppColors.primaryGreen,
           ),
         ),
-        if (unit.isNotEmpty)
+        if (unit.isNotEmpty && value != '—')
           Text(unit, style: TextStyle(fontSize: 12, color: Colors.grey)),
         SizedBox(height: 4),
         Text(label, style: TextStyle(fontSize: 13, color: Colors.grey)),

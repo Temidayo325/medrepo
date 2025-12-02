@@ -55,13 +55,15 @@ class EditHealthInfoDialog {
                   Expanded(
                     child: TextField(
                       controller: heightController,
+                      cursorColor: AppColors.darkGreen,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Height (cm)',
-                        prefixIcon: Icon(Icons.height),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        labelStyle: TextStyle(color: AppColors.darkGreen),
+                        prefixIcon: Icon(Icons.height, color: AppColors.darkGreen),
+                        filled: true,
+                        fillColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       ),
                     ),
                   ),
@@ -69,13 +71,15 @@ class EditHealthInfoDialog {
                   Expanded(
                     child: TextField(
                       controller: weightController,
+                      cursorColor: AppColors.darkGreen,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
                         labelText: 'Weight (kg)',
-                        prefixIcon: Icon(Icons.monitor_weight),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        labelStyle: TextStyle(color: AppColors.darkGreen),
+                        prefixIcon: Icon(Icons.monitor_weight, color: AppColors.darkGreen,),
+                        filled: true,
+                        fillColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       ),
                     ),
                   ),
@@ -86,14 +90,16 @@ class EditHealthInfoDialog {
 
               TextField(
                 controller: conditionsController,
+                cursorColor: AppColors.darkGreen,
                 maxLines: 3,
                 decoration: InputDecoration(
                   labelText: 'Chronic Conditions',
+                  labelStyle: TextStyle(color: AppColors.darkGreen),
                   hintText: 'e.g., Diabetes Type 2, Hypertension',
-                  prefixIcon: Icon(Icons.local_hospital),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  prefixIcon: Icon(Icons.local_hospital, color: AppColors.darkGreen),
+                  filled: true,
+                  fillColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),
 
@@ -101,14 +107,16 @@ class EditHealthInfoDialog {
 
               TextField(
                 controller: allergiesController,
+                cursorColor: AppColors.darkGreen,
                 maxLines: 2,
                 decoration: InputDecoration(
                   labelText: 'Allergies',
+                  labelStyle: TextStyle(color: AppColors.darkGreen),
                   hintText: 'e.g., Penicillin, Peanuts',
-                  prefixIcon: Icon(Icons.warning_amber_rounded),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  prefixIcon: Icon(Icons.warning_amber_rounded, color: AppColors.darkGreen),
+                  filled: true,
+                  fillColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),
 
