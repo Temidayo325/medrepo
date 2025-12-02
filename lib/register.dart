@@ -142,16 +142,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         body: jsonEncode(payload),
       );
 
-      // Log response
-      debugPrint('=== REGISTER RESPONSE (status: ${response.statusCode}) ===');
-      try {
-        final decoded = jsonDecode(response.body);
-        debugPrint(const JsonEncoder.withIndent('  ').convert(decoded));
-      } catch (_) {
-        debugPrint(response.body);
-      }
-      debugPrint('=======================================================');
-
       if (!mounted) return;
       
       // Close loading dialog first
@@ -159,13 +149,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final res = jsonDecode(response.body);
-        
-        debugPrint('=== PARSED RESPONSE ===');
-        debugPrint('Status: ${res['status']}');
-        debugPrint('Message: ${res['message']}');
-        debugPrint('Has data: ${res['data'] != null}');
-        debugPrint('Has token: ${res['token'] != null}');
-        debugPrint('=====================');
         
         if (res['status'] == true) {
           final userData = res['data'];
@@ -205,10 +188,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           // Small delay to show success message
           await Future.delayed(const Duration(milliseconds: 800));
           
-          if (!mounted) return;
-          
-          debugPrint('=== NAVIGATING TO ROOT PAGE ===');
-          
+          if (!mounted) return;      
           // Navigate to RootPage with proper routing
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -217,15 +197,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             (route) => false, // Remove all previous routes
           );
           
-          debugPrint('=== NAVIGATION COMPLETE ===');
 
         } else {
           // Backend returned error but with 200/201
-          debugPrint('Backend error: ${res['message']}');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(res['message'] ?? 'An error occurred.'),
+                content: Text(res['data'] ?? 'An error occurred.'),
                 backgroundColor: AppColors.error,
               ),
             );

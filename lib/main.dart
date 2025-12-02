@@ -10,6 +10,7 @@ void main() async {
   await Hive.openBox('tests');
   await Hive.openBox('emergencyContacts'); // box to store all test records
   await Hive.openBox('profile'); 
+  await Hive.openBox('patientProfile');
   await Hive.openBox('viralPanel');
   // Hive.box('auth').put('isRegistered', true);
   await Hive.openBox('token');

@@ -1,41 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:local_auth/local_auth.dart';
 
-import 'components/profile/profile_picure.dart';
-import 'components/profile/profile_info.dart';
-import 'components/profile/add_emergency_contact.dart';
-import 'components/profile/viral_panel.dart';
-import 'components/profile/edit_profile.dart';
-import 'components/empty_state.dart';
+// import 'components/send_post_request.dart';
+// import 'components/snackbar/error.dart';
+// import 'components/snackbar/success.dart';
+// import 'components/loader.dart';
+import 'components/profile/edit_health_record.dart';
 import 'colors.dart';
 
 class ProfilePage extends StatelessWidget {
   ProfilePage({super.key});
 
-  final Map<String, dynamic> defaultContacts = {
-    'contact1': {'name': '', 'phone': '', 'email': ''},
-    'contact2': {'name': '', 'phone': '', 'email': ''},
-  };
-  
-  final List<Map<String, String>> defaultViralPanel = [
-    {'full_name': '','short_name': '','result': '','date': '',},
-    {'full_name': '','short_name': '','result': '','date': '',},
-    {'full_name': '','short_name': '','result': '','date': '',},
-  ];
+  // Calculate BMI
+  double? calculateBMI(String? height, String? weight) {
+    if (height == null || weight == null || height.isEmpty || weight.isEmpty) {
+      return null;
+    }
+    try {
+      final h = double.parse(height) / 100; // convert cm to m
+      final w = double.parse(weight);
+      return w / (h * h);
+    } catch (e) {
+      return null;
+    }
+  }
 
-  final Map<String, dynamic> defaultProfile = {
-      "name": "",
-      "age": "",
-      "gender": "",
-      "phone": "",
-      "email": "",
-      "bloodGroup": "",
-      "genotype": "",
-      "bmi": "",
-      "conditions": "",
-      "allergies": "",
-    };
   Future<bool> _showConfirmationDialog(BuildContext context, String message) async {
     return await showDialog<bool>(
       context: context,
@@ -46,20 +35,11 @@ class ProfilePage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: Color.fromARGB(255, 51, 146, 78)),
-            ),
+            child: const Text("Cancel", style: TextStyle(color: AppColors.primaryGreen)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              "Authorize",
-              style: TextStyle(
-                color: Color.fromARGB(255, 51, 146, 78),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text("Authorize", style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -68,9 +48,9 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final emergencyBox = Hive.box('emergencyContacts');
-    final viralPanelBox = Hive.box('viralPanel');
     final profileBox = Hive.box('profile');
+    final patientProfileBox = Hive.box('patientProfile');
+    final emergencyContactsBox = Hive.box('emergencyContacts');
 
     return Scaffold(
       backgroundColor: AppColors.lightBackground,
@@ -78,379 +58,240 @@ class ProfilePage extends StatelessWidget {
         backgroundColor: AppColors.lightBackground,
         elevation: 0,
         toolbarHeight: 90,
-        // leading: Icon(Icons.arrow_back, color: AppColors.primaryGreen, size: 25),
         centerTitle: true,
         title: const Text(
           'Profile',
           style: TextStyle(
             fontSize: 25,
-            color: Color.fromARGB(255, 3, 118, 30),
+            color: AppColors.primaryGreen,
             fontWeight: FontWeight.bold,
-            decoration: TextDecoration.none,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => showEditProfileBottomSheet(context),
-            child: const Text(
-              "Edit",
-              style: TextStyle(
-                color: AppColors.primaryGreen,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
-          SizedBox(width: 8),
-        ],
       ),
-
       body: ValueListenableBuilder(
         valueListenable: profileBox.listenable(),
         builder: (context, box, _) {
-          final raw = box.get("profile", defaultValue: defaultProfile);
+          final profile = Map<String, dynamic>.from(
+            box.toMap()..removeWhere((key, value) => key == 'id' || key == 'identifier'),
+          );
 
-          /// --- Normalize values to avoid null ---
-          final profile = Map<String, dynamic>.from(raw)
-            .map((key, value) => MapEntry(key, value ?? ""));
-
-          // Check if profile is empty
-          final bool hasProfileData = profile["name"].toString().isNotEmpty;
+          final hasProfileData = (profile['name'] ?? '').toString().isNotEmpty;
 
           return SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 30),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center, // keeps vertical centering
-                // crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// Avatar
-                  ProfileAvatar(),
-                  SizedBox(height: 15),
-                  /// Name - Enhanced empty state
-                  hasProfileData 
-                    ? Text(
-                        profile["name"],
-                        // textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.bold,
-                          color: Color.fromARGB(255, 3, 118, 30),
+                  // Profile Avatar & Basic Info
+                  Center(
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.2),
+                          child: Icon(Icons.person, size: 50, color: AppColors.primaryGreen),
                         ),
-                      )
-                    : Column(
-                        children: [
-                          Icon(
-                            Icons.person_outline,
-                            size: 40,
-                            color: Color.fromARGB(255, 3, 118, 30),
+                        SizedBox(height: 15),
+                        Text(
+                          hasProfileData ? profile['name'] ?? 'No Name' : 'Your Profile',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryGreen,
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Your Profile",
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w600,
-                              color: Color.fromARGB(255, 3, 118, 30),
-                            ),
-                          ),
+                        ),
+                        if (!hasProfileData) ...[
                           SizedBox(height: 4),
                           Text(
-                            "Tap Edit to get started",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.primaryGreen,
-                            ),
+                            'Tap Edit to get started',
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                         ],
-                      ),
-
-                  SizedBox(height: 25),
-
-                  /// PROFILE INFO - Enhanced empty state
-                  hasProfileData
-                    ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 15),
-                          margin: EdgeInsets.symmetric(horizontal: 5, vertical: 0),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20), // fully rounded
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.03),
-                                blurRadius: 16,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children:[
-                                  _infoCard("${profile['age']}", "Age"),
-                                  SizedBox(width: 10),
-                                  _infoCard("${profile['bmi']}", "BMI", unit: "kg/m²"),
-                                  SizedBox(width: 10),
-                                  _infoCard("${profile['bloodGroup']}", "BG"),
-                                  SizedBox(width: 10),
-                                  _infoCard("${profile['genotype']}", "Genotype"),
-                                ]
-                              )
-                            ],)
-                        ),
-                        SizedBox(height: 35),
-                        Text("Contact information", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
-                        SizedBox(height: 5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                              _additionalInfo(Icons.mail, "${profile['email']}"),
-                              SizedBox(width:15),
-                              _additionalInfo(Icons.phone, "${profile['phone']}")
-                          ]
-                        ),
-                        
-                        SizedBox(height: 35),
-                        Text("Physical Features", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
-                        SizedBox(height:5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                              _additionalInfo(Icons.height, "${profile['height']} cm"),
-                              SizedBox(width:5),
-                              _additionalInfo(Icons.monitor_weight, "${profile['weight']} Kg"),
-                              SizedBox(width: 5),
-                              _additionalInfo(Icons.people_outline, "${profile['gender']}"),
-                          ]
-                        ),
-
-                        SizedBox(height: 35),
-                        Text("Chronic features", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
-                        SizedBox(height: 5),
-                        Text("${profile['conditions']}", style: TextStyle(color: Colors.black45, fontSize: 17, letterSpacing: 1.2),),
-
-                        SizedBox(height: 35),
-                        Text("Allergies", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 19, color: Color.fromARGB(255, 3, 118, 30))),
-                        SizedBox(height: 5),
-                        Builder(
-                          builder: (_) {
-                            final allergyString = profile['allergies'] ?? '';
-                            if (allergyString.trim().isEmpty) {
-                              return Text(
-                                "None",
-                                style: TextStyle(color: Colors.black45, fontSize: 16),
-                              );
-                            }
-                            final allergies = allergyString.split(',').map((e) => e.trim()).toList();
-                            return Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: allergies.map((allergy) {
-                                return _additionalInfo(Icons.warning_amber_rounded, allergy);
-                              }).toList(),
-                            );
-                          },
-                        ),
-                      ]
-                    )
-                    : Container(
-                        padding: EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.blueGrey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.blueGrey.shade200,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.health_and_safety_outlined,
-                              size: 48,
-                              color: AppColors.primaryGreen,
-                            ),
-                            SizedBox(height: 12),
-                            Text(
-                              "No Health Info Yet",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primaryGreen,
-                              ),
-                            ),
-                            SizedBox(height: 6),
-                            Text(
-                              "Add your details to track your health",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.primaryGreen,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                  SizedBox(height: 35),
-
-                  /// EMERGENCY CONTACTS - Enhanced empty state (side by side)
-                  ValueListenableBuilder(
-                    valueListenable: emergencyBox.listenable(),
-                    builder: (context, box, _) {
-                      final stored = box.get(
-                        'emergencyContacts',
-                        defaultValue: defaultContacts,
-                      );
-
-                      final contacts = Map<String, dynamic>.from(stored);
-
-                      final c1 = Map<String, dynamic>.from(contacts['contact1']);
-                      final c2 = Map<String, dynamic>.from(contacts['contact2']);
-
-                      final bool hasContact1 = (c1['name'] ?? '').toString().isNotEmpty;
-                      final bool hasContact2 = (c2['name'] ?? '').toString().isNotEmpty;
-
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: ProfileInfoCard(
-                              header: 'Emergency Contact 1',
-                              child: hasContact1 
-                                ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _infoRow(Icons.person, c1['name'] ?? '', compact: true),
-                                      SizedBox(height: 8),
-                                      _infoRow(Icons.phone, c1['phone'] ?? '', compact: true),
-                                      SizedBox(height: 8),
-                                      _infoRow(Icons.email, c1['email'] ?? '', compact: true),
-                                    ],
-                                  )
-                                : EmptyState(icon: Icons.person_add_outlined, message: "No Contact Added"),
-                            ),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: ProfileInfoCard(
-                              header: 'Emergency Contact 2',
-                              child: hasContact2 
-                                ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _infoRow(Icons.person, c2['name'] ?? '', compact: true),
-                                      SizedBox(height: 8),
-                                      _infoRow(Icons.phone, c2['phone'] ?? '', compact: true),
-                                      SizedBox(height: 8),
-                                      _infoRow(Icons.email, c2['email'] ?? '', compact: true),
-                                    ],
-                                  )
-                                : EmptyState(icon: Icons.person_add_outlined, message: "No Contact Added"),
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  SizedBox(height: 25),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade200,
-                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ],
                     ),
-                    onPressed: () async {
-                      final current = Map<String, dynamic>.from(
-                        emergencyBox.get('emergencyContacts', defaultValue: defaultContacts),
-                      );
-
-                      await showEmergencyContactsBottomSheet(context, current);
-                    },
-                    child: Text('Edit Emergency Contacts',
-                        style: TextStyle(color: Colors.blueGrey)),
                   ),
                   SizedBox(height: 30),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade200,
-                      padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () async {
-                      final LocalAuthentication auth = LocalAuthentication();
-                      bool isAuthenticated = false;
-                      
-                      try {
-                        // Check if device supports authentication (has PIN, pattern, or biometrics)
-                        final bool isDeviceSupported = await auth.isDeviceSupported();
-                        
-                        if (!isDeviceSupported) {
-                          // Device doesn't support any authentication method
-                          isAuthenticated = await _showConfirmationDialog(
-                            context,
-                            "This device doesn't support secure authentication. Proceed to view the panel?",
-                          );
-                        } else {
-                          // Device supports authentication - check what's available
-                          final bool canCheckBiometrics = await auth.canCheckBiometrics;
-                          final List<BiometricType> availableBiometrics = 
-                              await auth.getAvailableBiometrics();
-                          
-                          if (canCheckBiometrics && availableBiometrics.isNotEmpty) {
-                            // Biometrics are enrolled - use biometric authentication
-                            isAuthenticated = await auth.authenticate(
-                              localizedReason: 'Use your fingerprint to continue',
-                              options: const AuthenticationOptions(
-                                biometricOnly: false, // Allow PIN/pattern fallback
-                                stickyAuth: true,
-                              ),
-                            );
-                          } else {
-                            // Only PIN/pattern available (no biometrics enrolled)
-                            // Try to authenticate with device credentials
-                            isAuthenticated = await auth.authenticate(
-                              localizedReason: 'Authenticate to continue',
-                              options: const AuthenticationOptions(
-                                biometricOnly: false,
-                                stickyAuth: true,
-                              ),
-                            );
-                          }
-                        }
-                      } catch (e) {
-                        // Handle authentication errors
-                        print('Authentication error: $e');
-                        isAuthenticated = await _showConfirmationDialog(
-                          context,
-                          "Security check could not be completed. Proceed anyway?",
-                        );
-                      }
 
-                      if (isAuthenticated) {
-                        final currentList = List<Map<String, String>>.from(
-                          viralPanelBox.get('viralPanel', defaultValue: defaultViralPanel),
-                        );
-                        await showViralPanelBottomSheet(context, currentList);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Authentication failed")),
-                        );
-                      }
-                    },
-                    child: const Text('Viral Panel', style: TextStyle(color: Colors.blueGrey)),
+                  // Basic Profile Section
+                  _SectionHeader(
+                    title: 'Basic Information',
+                    onEdit: () => _showEditBasicInfoDialog(context, profile),
                   ),
+                  SizedBox(height: 12),
+                  _ProfileCard(
+                    child: hasProfileData
+                        ? Column(
+                            children: [
+                              _InfoRow(Icons.email, 'Email', profile['email'] ?? '—'),
+                              Divider(height: 24),
+                              _InfoRow(Icons.phone, 'Phone', profile['phone'] ?? '—'),
+                              Divider(height: 24),
+                              _InfoRow(Icons.cake, 'Date of Birth', profile['date_of_birth'] ?? '—'),
+                              Divider(height: 24),
+                              _InfoRow(Icons.wc, 'Gender', profile['gender'] ?? '—'),
+                            ],
+                          )
+                        : Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Text('No basic info added', style: TextStyle(color: Colors.grey)),
+                            ),
+                          ),
+                  ),
+                  SizedBox(height: 30),
+
+                  // Patient Profile Section (Height, Weight, BMI, Conditions, Allergies)
+                  ValueListenableBuilder(
+                    valueListenable: patientProfileBox.listenable(),
+                    builder: (context, box, _) {
+                      final patientProfile = Map<String, dynamic>.from(box.toMap());
+                      final hasPatientProfile = patientProfile.isNotEmpty;
+
+                      final bmi = calculateBMI(
+                        patientProfile['height']?.toString(),
+                        patientProfile['weight']?.toString(),
+                      );
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionHeader(
+                            title: 'Health Information',
+                            onEdit: () => EditHealthInfoDialog(context, patientProfile).show(),
+                          ),
+                          SizedBox(height: 12),
+                          _ProfileCard(
+                            child: hasPatientProfile
+                                ? Column(
+                                    children: [
+                                      // Height, Weight, BMI in a row
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                        children: [
+                                          _StatCard('Height', '${patientProfile['height'] ?? '—'}', 'cm'),
+                                          _StatCard('Weight', '${patientProfile['weight'] ?? '—'}', 'kg'),
+                                          _StatCard('BMI', bmi != null ? bmi.toStringAsFixed(1) : '—', 'kg/m2'),
+                                        ],
+                                      ),
+                                      Divider(height: 32),
+                                      _InfoRow(
+                                        Icons.local_hospital,
+                                        'Chronic Conditions',
+                                        patientProfile['chronic_conditions'] ?? 'None',
+                                      ),
+                                      Divider(height: 24),
+                                      _InfoRow(
+                                        Icons.warning_amber_rounded,
+                                        'Allergies',
+                                        patientProfile['allergies'] ?? 'None',
+                                      ),
+                                    ],
+                                  )
+                                : Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
+                                      child: Text('No health info added', style: TextStyle(color: Colors.grey)),
+                                    ),
+                                  ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  SizedBox(height: 30),
+
+                  // Emergency Contacts Section
+                  ValueListenableBuilder(
+                    valueListenable: emergencyContactsBox.listenable(),
+                    builder: (context, box, _) {
+                      final contacts = List<Map<String, dynamic>>.from(
+                        box.get('contacts', defaultValue: []),
+                      );
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionHeader(
+                            title: 'Emergency Contacts',
+                            onEdit: () => _showAddEmergencyContactDialog(context, null, null),
+                          ),
+                          SizedBox(height: 12),
+                          if (contacts.isEmpty)
+                            _ProfileCard(
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Text('No emergency contacts added', style: TextStyle(color: Colors.grey)),
+                                ),
+                              ),
+                            )
+                          else
+                            ...contacts.asMap().entries.map((entry) {
+                              final index = entry.key;
+                              final contact = entry.value;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: InkWell(
+                                  onTap: () => _showAddEmergencyContactDialog(context, contact, index),
+                                  child: _ProfileCard(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(Icons.person, color: AppColors.primaryGreen, size: 20),
+                                            SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                contact['name'] ?? 'Unknown',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primaryGreen,
+                                                ),
+                                              ),
+                                            ),
+                                            Icon(Icons.edit, size: 18, color: Colors.grey),
+                                          ],
+                                        ),
+                                        SizedBox(height: 8),
+                                        _InfoRow(Icons.family_restroom, 'Relationship', contact['relationship'] ?? '—'),
+                                        Divider(height: 16),
+                                        _InfoRow(Icons.phone, 'Phone', contact['phone'] ?? '—'),
+                                        Divider(height: 16),
+                                        _InfoRow(Icons.email, 'Email', contact['email'] ?? '—'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                        ],
+                      );
+                    },
+                  ),
+                  SizedBox(height: 30),
+
+                  // Viral Panel Button
+                  Center(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: Icon(Icons.biotech, color: Colors.white),
+                      label: Text('View Viral Panel', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      onPressed: () async {
+                        // Authentication logic here (same as before)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Viral panel feature coming soon')),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 30),
                 ],
               ),
             ),
@@ -459,105 +300,369 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-  /// Reusable icon row
-  Widget _infoRow(IconData icon, String? text, {bool compact = false}) {
+
+  // Edit Basic Info Dialog
+  void _showEditBasicInfoDialog(BuildContext context, Map<String, dynamic> currentData) {
+    final emailController = TextEditingController(text: currentData['email']);
+    final phoneController = TextEditingController(text: currentData['phone']);
+    final dobController = TextEditingController(text: currentData['date_of_birth']);
+    String? selectedGender = currentData['gender'];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Edit Basic Information',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                ),
+                SizedBox(height: 20),
+                TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                SizedBox(height: 16),
+                TextField(
+                  controller: phoneController,
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    prefixIcon: Icon(Icons.phone),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                SizedBox(height: 16),
+                TextField(
+                  controller: dobController,
+                  decoration: InputDecoration(
+                    labelText: 'Date of Birth',
+                    prefixIcon: Icon(Icons.cake),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  readOnly: true,
+                  onTap: () async {
+                    final date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime(2000),
+                      firstDate: DateTime(1900),
+                      lastDate: DateTime.now(),
+                    );
+                    if (date != null) {
+                      dobController.text = date.toIso8601String().split('T')[0];
+                    }
+                  },
+                ),
+                SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedGender,
+                  decoration: InputDecoration(
+                    labelText: 'Gender',
+                    prefixIcon: Icon(Icons.wc),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: ['Male', 'Female', 'Other'].map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                  onChanged: (val) => setState(() => selectedGender = val),
+                ),
+                SizedBox(height: 24),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () async {
+                    // Update basic profile (API call to patient update endpoint)
+                    final payload = {
+                      'email': emailController.text,
+                      'phone': phoneController.text,
+                      'date_of_birth': dobController.text,
+                      'gender': selectedGender?.toLowerCase(),
+                    };
+                    
+                    // TODO: Make API call here
+                    // final response = await http.put(...);
+                    
+                    // Update local storage
+                    final profileBox = Hive.box('profile');
+                    await profileBox.putAll(payload);
+                    
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Basic information updated'), backgroundColor: AppColors.success),
+                    );
+                  },
+                  child: Text('Save Changes', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+  // Add/Edit Emergency Contact Dialog
+  void _showAddEmergencyContactDialog(BuildContext context, Map<String, dynamic>? contact, int? index) {
+    final nameController = TextEditingController(text: contact?['name'] ?? '');
+    final relationshipController = TextEditingController(text: contact?['relationship'] ?? '');
+    final phoneController = TextEditingController(text: contact?['phone'] ?? '');
+    final emailController = TextEditingController(text: contact?['email'] ?? '');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    index == null ? 'Add Emergency Contact' : 'Edit Emergency Contact',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                  ),
+                  if (index != null)
+                    IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () async {
+                        // Delete contact
+                        final box = Hive.box('emergencyContacts');
+                        final contacts = List<Map<String, dynamic>>.from(box.get('contacts', defaultValue: []));
+                        contacts.removeAt(index);
+                        await box.put('contacts', contacts);
+                        
+                        // TODO: Update API here
+                        
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Contact deleted'), backgroundColor: Colors.red),
+                        );
+                      },
+                    ),
+                ],
+              ),
+              SizedBox(height: 20),
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  prefixIcon: Icon(Icons.person),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: relationshipController,
+                decoration: InputDecoration(
+                  labelText: 'Relationship',
+                  hintText: 'e.g., Mother, Brother',
+                  prefixIcon: Icon(Icons.family_restroom),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Phone',
+                  prefixIcon: Icon(Icons.phone),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  prefixIcon: Icon(Icons.email),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () async {
+                  final newContact = {
+                    'name': nameController.text,
+                    'relationship': relationshipController.text,
+                    'phone': phoneController.text,
+                    'email': emailController.text,
+                  };
+                  
+                  final box = Hive.box('emergencyContacts');
+                  final contacts = List<Map<String, dynamic>>.from(box.get('contacts', defaultValue: []));
+                  
+                  if (index == null) {
+                    contacts.add(newContact);
+                  } else {
+                    contacts[index] = newContact;
+                  }
+                  
+                  await box.put('contacts', contacts);
+                  
+                  // TODO: Make API call to update all contacts
+                  // final payload = {'contacts': contacts};
+                  // final response = await http.post/put(...);
+                  
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(index == null ? 'Contact added' : 'Contact updated'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                },
+                child: Text('Save Contact', style: TextStyle(color: Colors.white, fontSize: 16)),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Reusable Widgets
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final VoidCallback onEdit;
+
+  const _SectionHeader({required this.title, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+        ),
+        TextButton.icon(
+          onPressed: onEdit,
+          icon: Icon(Icons.edit, size: 16, color: AppColors.primaryGreen),
+          label: Text('Edit', style: TextStyle(color: AppColors.primaryGreen)),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileCard extends StatelessWidget {
+  final Widget child;
+
+  const _ProfileCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _InfoRow(this.icon, this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: compact ? 18 : 22, color: Colors.blueGrey),
-        SizedBox(width: 6),
+        Icon(icon, size: 20, color: AppColors.primaryGreen),
+        SizedBox(width: 12),
         Expanded(
-          child: Text(
-            (text == null || text.isEmpty) ? "—" : text,
-            style: TextStyle(
-              fontSize: compact ? 13 : 15, 
-              letterSpacing: compact ? 0.5 : 1.2,
-            ),
-            overflow: TextOverflow.ellipsis,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey)),
+              SizedBox(height: 2),
+              Text(
+                value.isEmpty ? '—' : value,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
-
-  Widget _infoCard(String? value, String details, {String? unit}) {
-    final displayValue = (value == null || value.isEmpty) ? "--" : value;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                displayValue,
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
-                  color: Color.fromARGB(255, 3, 118, 30),
-                ),
-              ),
-
-              // Add spacing only if unit exists
-              if (unit != null && unit.isNotEmpty) ...[
-                const SizedBox(width: 4),
-                Text(
-                  unit,
-                  style: const TextStyle(
-                    fontSize: 10, // smaller than value
-                    color: Color.fromARGB(255, 3, 118, 30),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            details,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.black45,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
 }
-  
-  Widget _additionalInfo(IconData icon, String? text)
-  {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
-      margin: EdgeInsets.symmetric(vertical: 10, horizontal: 5),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20), // fully rounded
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final String unit;
+
+  const _StatCard(this.label, this.value, this.unit);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryGreen,
           ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: Colors.black45),
-          SizedBox(width: 6),
-          Text(
-              (text == null || text.isEmpty) ? "-----" : text,
-              style: TextStyle(fontSize: 14, letterSpacing: 1,),
-            ),
-        ],
-      )
+        ),
+        if (unit.isNotEmpty)
+          Text(unit, style: TextStyle(fontSize: 12, color: Colors.grey)),
+        SizedBox(height: 4),
+        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey)),
+      ],
     );
   }
 }

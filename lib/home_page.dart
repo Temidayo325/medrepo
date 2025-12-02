@@ -43,7 +43,8 @@ class _HomePageState extends State<HomePage> {
         child: ValueListenableBuilder(
           valueListenable: Hive.box('profile').listenable(),
           builder: (context, box, _) {
-            final profile = box.get('profile', defaultValue: {});
+            final preProfile = Hive.box('profile');
+            final profile = preProfile.toMap();
             final firstName = (profile["name"] ?? "").trim().split(" ").first;
             return CustomAppBar(
               title: "Hello $firstName",
