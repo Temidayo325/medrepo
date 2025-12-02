@@ -7,7 +7,7 @@ Future<Map<String, dynamic>> sendDataToApi(
   Map<String, dynamic> data,
 ) async {
   final token = Hive.box('token').get('api_token', defaultValue: '');
-  print("TOken is $token");
+  print(data);
   final response = await http.post(Uri.parse(url), headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

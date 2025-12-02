@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../colors.dart';
 
 class TestCard extends StatefulWidget {
-  final String test;
+  final String name;
   final String result;
   final String date;
   final IconData icon;
@@ -12,7 +12,7 @@ class TestCard extends StatefulWidget {
 
   const TestCard({
     super.key,
-    required this.test,
+    required this.name,
     required this.result,
     required this.unit,
     required this.date,
@@ -93,7 +93,7 @@ class _TestCardState extends State<TestCard> with SingleTickerProviderStateMixin
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.test,
+          Text(widget.name,
               style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,

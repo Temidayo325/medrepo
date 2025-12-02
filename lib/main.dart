@@ -15,7 +15,7 @@ void main() async {
   // Hive.box('auth').put('isRegistered', true);
   await Hive.openBox('token');
   await Hive.openBox('register');
-  // final box = await Hive.openBox('profile'); // box to store user profile
+  // final box = await Hive.openBox('tests'); // box to store user profile
 
   // Only clear the box during development
   // if (kDebugMode) {

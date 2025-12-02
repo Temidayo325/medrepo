@@ -23,7 +23,7 @@ class _HomePageState extends State<HomePage> {
 
     final lowerName = testName.toLowerCase();
     final filtered = tests.where(
-      (t) => (t['test'] ?? "").toString().toLowerCase() == lowerName,
+      (t) => (t['name'] ?? "").toString().toLowerCase() == lowerName,
     ).toList();
 
     if (filtered.isEmpty) return null;

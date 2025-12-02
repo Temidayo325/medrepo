@@ -4,18 +4,22 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'components/test_card.dart';
 import 'components/app_title.dart';
 import 'components/test/add_test.dart';
+import 'components/snackbar/error.dart';
+import 'components/snackbar/success.dart';
+import 'dart:convert';
 import 'colors.dart';
+import 'package:http/http.dart' as http;
 
 class TestResultsPage extends StatelessWidget {
   TestResultsPage({super.key});
 
-  IconData getTestIcon(String test) {
-    if (test.contains('Blood')) return Icons.bloodtype_rounded;
-    if (test.contains('Cholesterol')) return Icons.favorite_rounded;
-    if (test.contains('PSA')) return Icons.male_rounded;
-    if (test.contains('Hepatitis') || test.contains('HIV')) return Icons.biotech_rounded;
-    if (test.contains('Malaria')) return Icons.bug_report_rounded;
-    if (test.contains('COVID')) return Icons.coronavirus_rounded;
+  IconData getTestIcon(String name) {
+    if (name.contains('Blood')) return Icons.bloodtype_rounded;
+    if (name.contains('Cholesterol')) return Icons.favorite_rounded;
+    if (name.contains('PSA')) return Icons.male_rounded;
+    if (name.contains('Hepatitis') || name.contains('HIV')) return Icons.biotech_rounded;
+    if (name.contains('Malaria')) return Icons.bug_report_rounded;
+    if (name.contains('COVID')) return Icons.coronavirus_rounded;
     return Icons.science_rounded;
   }
 
@@ -129,20 +133,30 @@ class TestResultsPage extends StatelessWidget {
                             return confirmed ?? false;
                           },
                           onDismissed: (direction) async {
-                            await testBox.delete(key);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Test deleted successfully!")),
-                            );
+                            final token = Hive.box('token').get('api_token', defaultValue: '');
+                            final response = await http.delete(Uri.parse("https://medrepo.fineworksstudio.com/api/patient/routine_test/$item['id']"), headers: {
+                              'Content-Type': 'application/json',
+                              'Accept': 'application/json',
+                              'Authorization': 'Bearer $token'
+                            });
+                            print(response.body);
+                            final responseBody =  jsonDecode(response.body);
+                            if(responseBody['status']!= true)
+                            {
+                              await testBox.delete(key);
+                              showSuccessSnack(context, "Test deleted successfully!");
+                            }
+                            showErrorSnack(context, "Unable to delete Test!");
                           },
                           child: AnimatedContainer(
                             duration: Duration(milliseconds: 400),
                             curve: Curves.easeOut,
                             child: TestCard(
-                              test: item['test']!,
+                              name: item['name']!,
                               result: item['result']!,
                               date: item['date']!,
                               unit: item['unit']!,
-                              icon: getTestIcon(item['test']!), 
+                              icon: getTestIcon(item['name']!), 
                             ),
                           ),
                         );

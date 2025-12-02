@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'components/profile/edit_health_record.dart';
 import 'components/profile/add_emergency_contact.dart';
+import 'components/profile/profile_picure.dart';
 import 'colors.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -131,11 +132,7 @@ class ProfilePage extends StatelessWidget {
                   Center(
                     child: Column(
                       children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.2),
-                          child: Icon(Icons.person, size: 50, color: AppColors.primaryGreen),
-                        ),
+                        ProfileAvatar(),
                         SizedBox(height: 15),
                         Text(
                           _safeString(profile['name'], 'Your Profile'),

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../colors.dart';
+import '../../components/loader.dart';
+import '../../components/snackbar/error.dart';
+import '../../components/snackbar/success.dart';
+import '../../components/send_post_request.dart';
 
 class AddTestBottomSheet extends StatefulWidget {
   final Map<String, dynamic>? existingTest; // for editing
@@ -44,53 +48,30 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
   void _saveTest({bool closeAfterSave = false}) async {
     if (_formKey.currentState!.validate()) {
       // Show loader
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => Center(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const CircularProgressIndicator(),
-          ),
-        ),
-      );
-
-      await Future.delayed(const Duration(milliseconds: 500));
-
+      showLoadingDialog(context, message: isEditing ? "Updating test..." : "Saving test...");
       try {
         final box = Hive.box('tests');
         final now = DateTime.now();
 
         final testData = {
-          "test": testController.text.trim(),
+          "name": testController.text.trim(),
           "result": resultController.text.trim(),
           "unit": unitController.text.trim(),
           "date": dateController.text.trim(),
           "timestamp": now.toIso8601String(),
         };
-
+        final response = await sendDataToApi('https://medrepo.fineworksstudio.com/api/patient/routine_test', testData,);
+        hideLoadingDialog(context);
+        if (response['status'] != true) {
+          showErrorSnack(context, response['data'] ??'Failed to update health information',);
+          return;
+        }
+        showSuccessSnack(context, isEditing ? "Test updated successfully" : "Test saved successfully",);
         if (isEditing && widget.hiveKey != null) {
-          // update existing entry
           await box.put(widget.hiveKey, testData);
         } else {
-          // add new entry
           await box.add(testData);
         }
-
-        Navigator.of(context).pop(); // close loader
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isEditing ? "Test updated successfully!" : "Test added successfully!"),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-
         if (closeAfterSave) {
           Navigator.pop(context); // close bottom sheet
         } else if (!isEditing) {
@@ -104,12 +85,7 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
         }
       } catch (e) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed to save test: $e"),
-            backgroundColor: Color.fromARGB(255, 3, 118, 30),
-          ),
-        );
+        showErrorSnack(context, 'Failed to update test $e',);
       }
     }
   }
@@ -153,36 +129,52 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
               const SizedBox(height: 30),
               TextFormField(
                 controller: testController,
-                decoration: const InputDecoration(
+                cursorColor: AppColors.darkGreen,
+                decoration: InputDecoration(
                   labelText: "Test Name",
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: AppColors.darkGreen),
+                  filled: true,
+                  fillColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
                 validator: (value) => value == null || value.isEmpty ? "Test name is required" : null,
               ),
               const SizedBox(height: 18),
               TextFormField(
                 controller: resultController,
-                decoration: const InputDecoration(
+                cursorColor: AppColors.darkGreen,
+                decoration: InputDecoration(
                   labelText: "Result",
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: AppColors.darkGreen),
+                  filled: true,
+                  fillColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
                 validator: (value) => value == null || value.isEmpty ? "Result is required" : null,
               ),
               const SizedBox(height: 18),
               TextFormField(
                 controller: unitController,
-                decoration: const InputDecoration(
+                cursorColor: AppColors.darkGreen,
+                decoration: InputDecoration(
                   labelText: "Unit (optional)",
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: AppColors.darkGreen),
+                  filled: true,
+                  fillColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
               ),
               const SizedBox(height: 18),
               TextFormField(
                 controller: dateController,
+                cursorColor: AppColors.darkGreen,
                 readOnly: true,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Date",
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: AppColors.darkGreen),
+                  filled: true,
+                  fillColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   suffixIcon: Icon(Icons.calendar_month, color: Color.fromARGB(255, 3, 118, 30),),
                 ),
                 validator: (value) => value == null || value.isEmpty ? "Test date is required" : null,
@@ -193,7 +185,7 @@ class _AddTestBottomSheetState extends State<AddTestBottomSheet> {
                     context: context,
                     initialDate: initialDate,
                     firstDate: DateTime(1900),
-                    lastDate: DateTime(2100),
+                    lastDate: DateTime.now(),
                   );
 
                   if (pickedDate != null) {
