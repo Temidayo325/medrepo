@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 // import 'components/snackbar/success.dart';
 // import 'components/loader.dart';
 import 'components/profile/edit_health_record.dart';
+import 'components/profile/add_emergency_contact.dart';
 import 'colors.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -214,7 +215,7 @@ class ProfilePage extends StatelessWidget {
                         children: [
                           _SectionHeader(
                             title: 'Emergency Contacts',
-                            onEdit: () => _showAddEmergencyContactDialog(context, null, null),
+                            onEdit: () => showEmergencyContactFlow(context),
                           ),
                           SizedBox(height: 12),
                           if (contacts.isEmpty)
@@ -233,7 +234,7 @@ class ProfilePage extends StatelessWidget {
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: InkWell(
-                                  onTap: () => _showAddEmergencyContactDialog(context, contact, index),
+                                  onTap: () => showEmergencyContactFlow(context),
                                   child: _ProfileCard(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,143 +419,7 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-  // Add/Edit Emergency Contact Dialog
-  void _showAddEmergencyContactDialog(BuildContext context, Map<String, dynamic>? contact, int? index) {
-    final nameController = TextEditingController(text: contact?['name'] ?? '');
-    final relationshipController = TextEditingController(text: contact?['relationship'] ?? '');
-    final phoneController = TextEditingController(text: contact?['phone'] ?? '');
-    final emailController = TextEditingController(text: contact?['email'] ?? '');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    index == null ? 'Add Emergency Contact' : 'Edit Emergency Contact',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
-                  ),
-                  if (index != null)
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () async {
-                        // Delete contact
-                        final box = Hive.box('emergencyContacts');
-                        final contacts = List<Map<String, dynamic>>.from(box.get('contacts', defaultValue: []));
-                        contacts.removeAt(index);
-                        await box.put('contacts', contacts);
-                        
-                        // TODO: Update API here
-                        
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Contact deleted'), backgroundColor: Colors.red),
-                        );
-                      },
-                    ),
-                ],
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: relationshipController,
-                decoration: InputDecoration(
-                  labelText: 'Relationship',
-                  hintText: 'e.g., Mother, Brother',
-                  prefixIcon: Icon(Icons.family_restroom),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Phone',
-                  prefixIcon: Icon(Icons.phone),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              SizedBox(height: 16),
-              TextField(
-                controller: emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryGreen,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onPressed: () async {
-                  final newContact = {
-                    'name': nameController.text,
-                    'relationship': relationshipController.text,
-                    'phone': phoneController.text,
-                    'email': emailController.text,
-                  };
-                  
-                  final box = Hive.box('emergencyContacts');
-                  final contacts = List<Map<String, dynamic>>.from(box.get('contacts', defaultValue: []));
-                  
-                  if (index == null) {
-                    contacts.add(newContact);
-                  } else {
-                    contacts[index] = newContact;
-                  }
-                  
-                  await box.put('contacts', contacts);
-                  
-                  // TODO: Make API call to update all contacts
-                  // final payload = {'contacts': contacts};
-                  // final response = await http.post/put(...);
-                  
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(index == null ? 'Contact added' : 'Contact updated'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                },
-                child: Text('Save Contact', style: TextStyle(color: Colors.white, fontSize: 16)),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  
 }
 
 // Reusable Widgets
