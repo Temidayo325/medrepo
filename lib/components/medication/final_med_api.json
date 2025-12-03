@@ -1,0 +1,26 @@
+{
+  "patient_id": 123,
+  "medication": {
+    "name": "Amoxicillin",
+    "strength": "500 mg",
+    "form": "Capsule"
+  },
+  "sig": {
+    "dose": "1 capsule",
+    "frequency": "2x daily",
+    "route": "PO",
+    "duration": "7 days",
+    "start_date": "2025-01-10"
+  },
+  "dispense": {
+    "quantity": 14,
+    "refills": 0,
+    "allow_substitution": true
+  },
+  "instructions": "Take after meals",
+  "clinician_notes": "",
+  "prescriber": {
+    "id": 55,
+    "name": "Dr. Jane Doe"
+  }
+}

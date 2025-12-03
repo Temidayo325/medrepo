@@ -3,8 +3,8 @@ import '../../colors.dart';
 
 class MedicationDetailsSheet extends StatelessWidget {
   final String name;
-  final String duration;
-  final String form;
+  final String frequency;
+  final String dosage_form;
   final int quantity;
   final String durationOfTherapy;
   final String createdAt;
@@ -13,18 +13,18 @@ class MedicationDetailsSheet extends StatelessWidget {
   const MedicationDetailsSheet({
     super.key,
     required this.name,
-    required this.duration,
-    required this.form,
+    required this.frequency,
+    required this.dosage_form,
     required this.quantity,
     required this.durationOfTherapy,
     required this.createdAt,
     required this.dosageStrength,
   });
 
-  Image getDosageFormImage(String form, {double size = 60}) {
+  Image getDosageFormImage(String dosage_form, {double size = 60}) {
     String assetName;
 
-    switch (form.toLowerCase()) {
+    switch (dosage_form.toLowerCase()) {
       case 'tablet':
         assetName = 'assets/dosage_form/tablet.png';
       case 'injection':
@@ -79,7 +79,7 @@ class MedicationDetailsSheet extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  getDosageFormImage(form, size: 200),
+                  getDosageFormImage(dosage_form, size: 200),
                   SizedBox(width: 0),
                   Expanded(
                     child: Container(
@@ -116,8 +116,8 @@ class MedicationDetailsSheet extends StatelessWidget {
               const SizedBox(height: 20),
 
               /// --- Additional Details ---
-              _buildDetailRow('Dosage form', form),
-              _buildDetailRow('Dose', duration),
+              _buildDetailRow('Dosage form', dosage_form),
+              _buildDetailRow('Dose', frequency),
               _buildDetailRow('Duration of therapy', durationOfTherapy),
               _buildDetailRow('Quantity', 'Total: $quantity'),
               _buildDetailRow('Created At', createdAt),

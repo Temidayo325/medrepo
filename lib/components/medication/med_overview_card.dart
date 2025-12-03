@@ -3,8 +3,8 @@ import '../../colors.dart';
 
 class IconTextCard extends StatelessWidget {
   final String name;
-  final String duration;
-  final String form;
+  final String frequency;
+  final String dosage_form;
   final String durationOfTherapy;
   final int? quantity; // optional
   final VoidCallback? onTap;
@@ -13,8 +13,8 @@ class IconTextCard extends StatelessWidget {
   const IconTextCard({
     Key? key,
     required this.name,
-    required this.duration,
-    required this.form,
+    required this.frequency,
+    required this.dosage_form,
     required this.durationOfTherapy,
     this.quantity,
     this.onTap,
@@ -22,8 +22,8 @@ class IconTextCard extends StatelessWidget {
   }) : super(key: key);
 
   /// Returns an Image widget based on the dosage form
-  Widget getDosageFormImage(String form) {
-    final formLower = form.toLowerCase();
+  Widget getDosageFormImage(String dosage_form) {
+    final formLower = dosage_form.toLowerCase();
     String assetPath;
 
     switch (formLower) {
@@ -56,6 +56,7 @@ class IconTextCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       splashColor: Colors.white,
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
@@ -76,7 +77,7 @@ class IconTextCard extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            getDosageFormImage(form), // <-- now uses image
+            getDosageFormImage(dosage_form), // <-- now uses image
             const SizedBox(height: 8),
             Text(
               name,
@@ -91,7 +92,7 @@ class IconTextCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              duration,
+              frequency,
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.grey,

@@ -4,18 +4,39 @@ import 'package:http/http.dart' as http;
 
 Future<Map<String, dynamic>> sendDataToApi(
   String url,
-  Map<String, dynamic> data,
-) async {
+  Map<String, dynamic> data, {
+  String method = "POST",   // <-- optional parameter with default
+}) async {
   final token = Hive.box('token').get('api_token', defaultValue: '');
   print(data);
-  final response = await http.post(Uri.parse(url), headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Authorization': 'Bearer $token'
-    },
-    body: jsonEncode(data),
-  );
-  // You always get a Map<String, dynamic>
+
+  http.Response response;
+
+  if (method == "POST") {
+    response = await http.post(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+      body: jsonEncode(data),
+    );
+  } else if (method == "PUT" || method == "PATCH") {
+    response = await http.put(
+      Uri.parse(url),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token'
+      },
+      body: jsonEncode(data),
+    );
+  } else {
+    throw Exception("Unsupported HTTP method: $method");
+  }
+
   print(response.body);
   return jsonDecode(response.body);
 }
+

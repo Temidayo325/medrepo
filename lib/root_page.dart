@@ -6,9 +6,17 @@ import 'test_page.dart';
 import 'medications_page.dart';
 import 'profile_page.dart';
 import 'components/navigation_controller.dart';
+import 'components/side_bar_navigation.dart'; // Import your sidebar
 
-class RootPage extends StatelessWidget {
-  RootPage({super.key});
+class RootPage extends StatefulWidget {
+  const RootPage({super.key});
+
+  @override
+  State<RootPage> createState() => _RootPageState();
+}
+
+class _RootPageState extends State<RootPage> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   // List of pages
   final List<Widget> pages = [
@@ -24,8 +32,52 @@ class RootPage extends StatelessWidget {
       valueListenable: NavigationController.selectedIndex,
       builder: (context, selectedIndex, _) {
         return Scaffold(
+          key: _scaffoldKey,
           backgroundColor: AppColors.lightBackground,
-          body: pages[selectedIndex],
+          
+          // Right-side drawer (endDrawer)
+          endDrawer: Drawer(
+            child: YourSidebarComponent(), // Replace with your actual sidebar widget
+          ),
+
+          body: Stack(
+            children: [
+              // Main page content
+              pages[selectedIndex],
+
+              // Transparent right-edge drag area
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  onTap: () {
+                    _scaffoldKey.currentState?.openEndDrawer();
+                  },
+                  onHorizontalDragEnd: (details) {
+                    // Detect left swipe (negative velocity)
+                    if (details.primaryVelocity != null && details.primaryVelocity! < -300) {
+                      _scaffoldKey.currentState?.openEndDrawer();
+                    }
+                  },
+                  child: Container(
+                    width: 40, // Width of the tap/drag area
+                    color: Colors.transparent,
+                    child: Center(
+                      child: Container(
+                        width: 3,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
 
           // Bottom Navigation Bar
           bottomNavigationBar: Container(
@@ -60,8 +112,13 @@ class RootPage extends StatelessWidget {
                   BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
                 ],
                 currentIndex: selectedIndex,
-                onTap: (index) =>
-                    NavigationController.selectedIndex.value = index,
+                onTap: (index) {
+                  NavigationController.selectedIndex.value = index;
+                  // Close drawer if open when switching pages
+                  if (_scaffoldKey.currentState?.isEndDrawerOpen ?? false) {
+                    Navigator.of(context).pop();
+                  }
+                },
               ),
             ),
           ),
@@ -70,3 +127,4 @@ class RootPage extends StatelessWidget {
     );
   }
 }
+

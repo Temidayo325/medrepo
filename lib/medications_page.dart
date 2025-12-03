@@ -36,7 +36,8 @@ class _MedicationPageState extends State<MedicationPage> {
     for (int i = 0; i < raw.length; i++) {
       final med = raw[i];
       if (med['id'] == null) {
-        med['id'] = DateTime.now().millisecondsSinceEpoch.toString() + '_$i';
+        // Only generate local ID if there's no server ID
+        med['id'] = 'local_${DateTime.now().millisecondsSinceEpoch}_$i';
         // update Hive at the same position
         await box.putAt(i, med);
         changed = true;
@@ -65,13 +66,24 @@ class _MedicationPageState extends State<MedicationPage> {
   Future<void> _addOrUpdateMedication(Map<String, dynamic> med, {int? index}) async {
     final box = await Hive.openBox('medications');
 
+    debugPrint('=== _addOrUpdateMedication ===');
+    debugPrint('Received medication: $med');
+    debugPrint('Index: $index');
+    debugPrint('Medication ID from server: ${med['id']}');
+
     if (index != null) {
-      // Update existing medication at Hive index
-      // Ensure id is preserved (if sheet didn't include it)
+      // ===== UPDATING EXISTING MEDICATION =====
+      debugPrint('UPDATE MODE: Updating at index $index');
+      
+      // Get existing medication to preserve any local data
       final existing = index >= 0 && index < medications.length ? medications[index] : null;
-      if (existing != null && existing['id'] != null && med['id'] == null) {
-        med['id'] = existing['id'];
+      
+      // CRITICAL: Preserve the server ID - don't overwrite it!
+      if (med['id'] == null && existing?['id'] != null) {
+        med['id'] = existing?['id'];
+        debugPrint('Preserving existing ID: ${existing?['id']}');
       }
+      
       // Ensure created_at exists
       med['created_at'] = med['created_at'] ?? existing?['created_at'] ?? DateTime.now().toIso8601String();
 
@@ -80,9 +92,21 @@ class _MedicationPageState extends State<MedicationPage> {
       setState(() {
         medications[index] = med;
       });
+      
+      debugPrint('Updated medication at index $index with ID: ${med['id']}');
     } else {
-      // Add new medication: generate id and ensure created_at
-      med['id'] = DateTime.now().millisecondsSinceEpoch.toString();
+      // ===== ADDING NEW MEDICATION =====
+      debugPrint('ADD MODE: Adding new medication');
+      
+      // CRITICAL: Only generate local ID if the server didn't provide one
+      if (med['id'] == null) {
+        med['id'] = 'local_${DateTime.now().millisecondsSinceEpoch}';
+        debugPrint('Generated local ID: ${med['id']}');
+      } else {
+        debugPrint('Using server-provided ID: ${med['id']}');
+      }
+      
+      // Ensure created_at exists
       med['created_at'] = med['created_at'] ?? DateTime.now().toIso8601String();
 
       await box.add(med);
@@ -92,14 +116,27 @@ class _MedicationPageState extends State<MedicationPage> {
       setState(() {
         medications = meds;
       });
+      
+      debugPrint('Added new medication with ID: ${med['id']}');
     }
+
+    debugPrint('All medications after save:');
+    for (var m in medications) {
+      debugPrint('  - ${m['name']} (ID: ${m['id']})');
+    }
+    debugPrint('=============================');
 
     // Re-apply filters and sort
     _applyFilters();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(index != null ? "${med['name']} updated successfully!" : "${med['name']} added successfully!", style: TextStyle(color: AppColors.lightBackground),),
+        content: Text(
+          index != null 
+              ? "${med['name']} updated successfully!" 
+              : "${med['name']} added successfully!",
+          style: TextStyle(color: AppColors.lightBackground),
+        ),
         backgroundColor: AppColors.primaryGreen,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 3),
@@ -109,13 +146,18 @@ class _MedicationPageState extends State<MedicationPage> {
 
   // --- Confirm delete using ID (returns bool for confirmDismiss) ---
   Future<bool> _confirmDeleteById(String id) async {
+    debugPrint('=== Attempting to delete medication with ID: $id ===');
+    
     final med = medications.firstWhere((m) => m['id'] == id, orElse: () => {});
-    if (med.isEmpty) return false;
+    if (med.isEmpty) {
+      debugPrint('Medication with ID $id not found in local list');
+      return false;
+    }
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Delete Medication', style: TextStyle(color: AppColors.lightBackground),),
+        title: Text('Delete Medication', style: TextStyle(color: AppColors.primaryGreen)),
         content: Text('Are you sure you want to delete "${med['name']}"?'),
         actions: [
           TextButton(
@@ -138,8 +180,12 @@ class _MedicationPageState extends State<MedicationPage> {
     final hiveList = box.values.map((e) => Map<String, dynamic>.from(e)).toList();
     final hiveIndex = hiveList.indexWhere((m) => m['id'] == id);
 
-    if (hiveIndex == -1) return false;
+    if (hiveIndex == -1) {
+      debugPrint('Medication with ID $id not found in Hive box');
+      return false;
+    }
 
+    debugPrint('Deleting medication at Hive index $hiveIndex');
     await box.deleteAt(hiveIndex);
 
     // Update local lists
@@ -148,9 +194,10 @@ class _MedicationPageState extends State<MedicationPage> {
       filteredMedications.removeWhere((m) => m['id'] == id);
     });
 
+    debugPrint('Medication deleted successfully');
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('"${med['name']}" deleted successfully!', style: TextStyle(color: AppColors.lightBackground),),
+        content: Text('"${med['name']}" deleted successfully!', style: TextStyle(color: AppColors.lightBackground)),
         backgroundColor: AppColors.primaryGreen,
         behavior: SnackBarBehavior.floating,
         duration: Duration(seconds: 2),
@@ -166,7 +213,10 @@ class _MedicationPageState extends State<MedicationPage> {
     _applyFilters();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Filtered by $filter • ${filteredMedications.length} meds", style: TextStyle(color: AppColors.primaryGreen),),
+        content: Text(
+          "Filtered by $filter • ${filteredMedications.length} meds",
+          style: TextStyle(color: AppColors.primaryGreen),
+        ),
         backgroundColor: AppColors.lightBackground,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
@@ -240,14 +290,20 @@ class _MedicationPageState extends State<MedicationPage> {
 
   // --- Helpers to open edit sheet with correct hive index ---
   Future<void> _openEditSheetById(String id) async {
+    debugPrint('=== Opening edit sheet for medication ID: $id ===');
+    
     // find hive index for id
     final box = await Hive.openBox('medications');
     final hiveList = box.values.map((e) => Map<String, dynamic>.from(e)).toList();
     final hiveIndex = hiveList.indexWhere((m) => m['id'] == id);
 
-    if (hiveIndex == -1) return;
+    if (hiveIndex == -1) {
+      debugPrint('Medication with ID $id not found in Hive');
+      return;
+    }
 
     final existingMed = hiveList[hiveIndex];
+    debugPrint('Found medication at Hive index $hiveIndex: ${existingMed['name']} (ID: ${existingMed['id']})');
 
     showModalBottomSheet(
       context: context,
@@ -271,8 +327,8 @@ class _MedicationPageState extends State<MedicationPage> {
       backgroundColor: Colors.transparent,
       builder: (_) => MedicationDetailsSheet(
         name: med['name'],
-        duration: med['duration'],
-        form: med['form'],
+        frequency: med['frequency'],
+        dosage_form: med['dosage_form'],
         quantity: med['quantity'],
         durationOfTherapy: med['duration_of_therapy'],
         createdAt: med['created_at'],
@@ -305,7 +361,7 @@ class _MedicationPageState extends State<MedicationPage> {
           // Status selector
           StatusSelector(onStatusSelected: _filterByStatus),
 
-          // Grid of medication cards (3 columns)
+          // Grid of medication cards
           Expanded(
             child: filteredMedications.isEmpty
                 ? Center(
@@ -335,12 +391,13 @@ class _MedicationPageState extends State<MedicationPage> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 20,
                           mainAxisSpacing: 20,
-                          childAspectRatio: 0.8,
+                          childAspectRatio: 0.75, // Adjusted for better proportions
+
                         ),
                         itemCount: filteredMedications.length,
                         itemBuilder: (context, index) {
                           final data = filteredMedications[index];
-                          final id = data['id'] as String;
+                          final id = data['id']?.toString() ?? 'item_$index';
 
                           return Dismissible(
                             key: Key(id),
@@ -357,8 +414,8 @@ class _MedicationPageState extends State<MedicationPage> {
                               onTap: () => _showMedicationDetails(id),
                               child: IconTextCard(
                                 name: data['name'],
-                                duration: data['duration'],
-                                form: data['form'],
+                                frequency: data['frequency'],
+                                dosage_form: data['dosage_form'],
                                 quantity: data['quantity'],
                                 durationOfTherapy: data['duration_of_therapy'],
                                 trailing: IconButton(
@@ -373,7 +430,6 @@ class _MedicationPageState extends State<MedicationPage> {
                     ),
                   ),
           ),
-
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
