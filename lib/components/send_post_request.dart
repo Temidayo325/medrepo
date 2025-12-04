@@ -8,6 +8,11 @@ Future<Map<String, dynamic>> sendDataToApi(
   String method = "POST",   // <-- optional parameter with default
 }) async {
   final token = Hive.box('token').get('api_token', defaultValue: '');
+  final header = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token'
+      };
   print(data);
 
   http.Response response;
@@ -15,27 +20,24 @@ Future<Map<String, dynamic>> sendDataToApi(
   if (method == "POST") {
     response = await http.post(
       Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token'
-      },
+      headers: header,
       body: jsonEncode(data),
     );
-  } else if (method == "PUT" || method == "PATCH") {
+  } else if (method == "PUT" ) {
     response = await http.put(
       Uri.parse(url),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token'
-      },
+      headers: header,
       body: jsonEncode(data),
     );
-  } else {
+  }else if(method == "PATCH") {
+      response = await http.patch(
+      Uri.parse(url),
+      headers: header,
+      body: jsonEncode(data),
+    );
+  }else {
     throw Exception("Unsupported HTTP method: $method");
   }
-
   print(response.body);
   return jsonDecode(response.body);
 }

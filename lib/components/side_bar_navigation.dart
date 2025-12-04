@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
+import 'profile/profile_picure.dart';
 import '../colors.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import '../symptoms_diary.dart';
 
 class YourSidebarComponent extends StatelessWidget {
   const YourSidebarComponent({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
+    final box = Hive.box('profile');
+    final profile = Map<String, dynamic>.from(box.toMap());
     return Container(
       color: Colors.white,
       child: SafeArea(
@@ -13,48 +18,24 @@ class YourSidebarComponent extends StatelessWidget {
           children: [
             // Sidebar Header
             Container(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.all(40),
               decoration: BoxDecoration(
                 color: AppColors.primaryGreen,
               ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person, size: 35, color: AppColors.primaryGreen),
-                  ),
-                  SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Menu',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+              child: Column( 
+                  children: [
+                      ProfileAvatar(),
+                      SizedBox(height: 15,),
+                      Text( profile['name'], style: TextStyle( fontSize: 22, fontWeight: FontWeight.bold,
+                            color: AppColors.mintGreen,),
                         ),
-                        Text(
-                          'Quick Actions',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+                      // IconButton(
+                      //   icon: Icon(Icons.close, color: Colors.white),
+                      //   onPressed: () => Navigator.pop(context),
+                      // ),
+                  ]
+                ),
               ),
-            ),
-
             // Sidebar Menu Items
             Expanded(
               child: ListView(
@@ -62,8 +43,8 @@ class YourSidebarComponent extends StatelessWidget {
                 children: [
                   _buildSidebarItem(
                     context,
-                    icon: Icons.dashboard,
-                    title: 'Dashboard',
+                    icon: Icons.home,
+                    title: 'Home',
                     onTap: () {
                       Navigator.pop(context);
                       // Navigate or perform action
@@ -71,11 +52,13 @@ class YourSidebarComponent extends StatelessWidget {
                   ),
                   _buildSidebarItem(
                     context,
-                    icon: Icons.history,
-                    title: 'History',
+                    icon: Icons.book,
+                    title: 'Symptoms diary',
                     onTap: () {
                       Navigator.pop(context);
-                      // Navigate to history
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => SymptomsDiaryPage()),
+                      );
+                      
                     },
                   ),
                   _buildSidebarItem(
