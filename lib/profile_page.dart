@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
+import 'components/profile/secure_content_access.dart';
 import 'components/profile/edit_health_record.dart';
 import 'components/profile/add_emergency_contact.dart';
 import 'components/profile/profile_picure.dart';
 import 'colors.dart';
+import 'components/loader.dart';
 
 class ProfilePage extends StatelessWidget {
   ProfilePage({super.key});
@@ -407,9 +408,10 @@ class ProfilePage extends StatelessWidget {
                       icon: Icon(Icons.biotech, color: Colors.white),
                       label: Text('View Viral Panel', style: TextStyle(color: Colors.white, fontSize: 16)),
                       onPressed: () async {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Viral panel feature coming soon')),
-                        );
+                        
+                        // showSecureViralPanel(context: context, onLoadingStateChanged: (isLoading) => {
+                        //   showLoadingDialog(context, message: "Loading viral panel ...")
+                        // });
                       },
                     ),
                   ),
