@@ -1,11 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:medrepo/components/send_post_request.dart';
+import 'package:medrepo/login.dart';
 import 'colors.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'root_page.dart';
 import 'components/loader.dart';
+import 'components/animated_logo.dart';
+import 'components/snackbar/error.dart';
+import 'components/snackbar/success.dart';
+import 'components/screen_blobs.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({Key? key}) : super(key: key);
@@ -60,9 +63,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       _goToStep(1);
     } else {
       // if you want to show a little feedback when validation fails:
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fix errors before continuing')),
-      );
+      showErrorSnack(context, 'Please fix errors before continuing');
     }
   }
 
@@ -97,22 +98,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Future<void> _submitRegistration() async {
     // Validate step2 before submit
     if (!(_formKeyStep2.currentState?.validate() ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fix errors before submitting')),
-      );
+      showErrorSnack(context, 'Please fix errors before submitting');
       return;
     }
 
     if (selectedGender == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a gender')),
-      );
+      showErrorSnack(context, 'Please select a gender');
       return;
     }
     if (selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please pick a date of birth')),
-      );
+      showErrorSnack(context, 'Please pick a date of birth');
       return;
     }
 
@@ -126,29 +121,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       'gender': selectedGender?.toLowerCase(),
       'date_of_birth': selectedDate?.toIso8601String(),
     };
-
-    // LOG outgoing data (inspect console / debug console)
-    debugPrint('=== REGISTER REQUEST BODY ===');
-    debugPrint(const JsonEncoder.withIndent('  ').convert(payload));
-    debugPrint('=============================');
-
     // Show progress indicator dialog (non-dismissible)
     showLoadingDialog(context, message: 'Creating your account...');
 
     try {
-      final response = await http.post(
-        Uri.parse('https://medrepo.fineworksstudio.com/api/patient/create'),
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-        body: jsonEncode(payload),
-      );
+      final response = await sendDataToApi('https://medrepo.fineworksstudio.com/api/patient/create', payload);
 
       if (!mounted) return;
       
       // Close loading dialog first
       Navigator.of(context, rootNavigator: true).pop();
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final res = jsonDecode(response.body);
+      if (response['status'] == true) {
+        final res = response;
         
         if (res['status'] == true) {
           final userData = res['data'];
@@ -176,19 +161,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
           // Success message
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(res['message'] ?? 'Account created successfully!'),
-                backgroundColor: AppColors.success,
-                duration: const Duration(seconds: 2),
-              ),
-            );
+            showSuccessSnack(context, 'Account created successfully!');
           }
           
           // Small delay to show success message
-          await Future.delayed(const Duration(milliseconds: 800));
+          await Future.delayed(const Duration(milliseconds: 700));
           
-          if (!mounted) return;      
+          if (!mounted) return;
           // Navigate to RootPage with proper routing
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
@@ -201,24 +180,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         } else {
           // Backend returned error but with 200/201
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(res['data'] ?? 'An error occurred.'),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            showErrorSnack(context, res['data'] ?? 'An error occurred.');
           }
         }
       } else {
         // show server message if present
         String message = 'Registration failed. Please try again.';
         try {
-          final err = jsonDecode(response.body);
-          if (err is Map && err['data'] != null) message = err['data'];
-          if (err is Map && err['message'] != null) message = err['message'];
+          final err = response;
+          if (err['data'] != null) message = err['data'];
+          if (err['message'] != null) message = err['message'];
         } catch (_) {}
-        
-        debugPrint('Server error: $message');
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -226,23 +198,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           );
         }
       }
-    } catch (e, stackTrace) {
-      debugPrint('=== NETWORK ERROR ===');
-      debugPrint('Error: $e');
-      debugPrint('Stack trace: $stackTrace');
-      debugPrint('====================');
-      
+    } catch (e) {
       if (!mounted) return;
       
       // Make sure to close loading dialog on error
-      Navigator.of(context, rootNavigator: true).pop();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Network error. Please try again.'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      // Navigator.of(context, rootNavigator: true).pop();
+      hideLoadingDialog(context);
+      showErrorSnack(context, 'Network error. Please try again.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -270,15 +232,11 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // logo
+            SizedBox(height: 30,),
             Center(
-              child: SvgPicture.asset(
-                'assets/medrepo_logo.svg',
-                width: 120,
-                height: 120,
-              ),
+              child: AnimatedLogo(size: 60)
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Text('Step 1 of 2: Basic Information',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium),
@@ -357,6 +315,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               primaryLabel: 'Next',
               onPrimaryPressed: _nextFromStep1,
             ),
+            SizedBox(height: 10,),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Don't have an account? ",
+                  style: TextStyle(color: AppColors.darkGreen),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => RegistrationScreen()),
+                    );
+                  },
+                  child: Text(
+                    'Login',
+                    style: TextStyle(
+                      color: AppColors.deepGreen,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -373,11 +356,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Center(
-              child: SvgPicture.asset(
-                'assets/medrepo_logo.svg',
-                width: 100,
-                height: 100,
-              ),
+              child: AnimatedLogo(size: 60)
             ),
             const SizedBox(height: 8),
             Text('Step 2 of 2: Additional Details',
@@ -409,7 +388,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
             // Gender Dropdown
             DropdownButtonFormField<String>(
-              value: selectedGender,
+              initialValue: selectedGender,
               style: const TextStyle(fontWeight: FontWeight.normal, fontSize: 16, color: Colors.black),
               decoration: InputDecoration(
                 labelText: 'Gender',
@@ -507,6 +486,30 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ],
             ),
             const SizedBox(height: 10),
+            Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Already have an account? ",
+                    style: TextStyle(color: AppColors.darkGreen),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => LoginScreen()),
+                      );
+                    },
+                    child: Text(
+                      'Login',
+                      style: TextStyle(
+                        color: AppColors.deepGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -530,6 +533,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.mintGreen,
+      extendBodyBehindAppBar: true, // Crucial for letting the background go behind the AppBar
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -540,26 +544,39 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               )
             : null,
       ),
-      body: Column(
+      body: Stack(
+        fit: StackFit.expand, // Ensures the stack covers the entire screen area
         children: [
-          Padding(padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12), child: progress),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              // AnimatedSwitcher gives us fade+scale transitions
-              child: AnimatedSwitcher(
-                duration: switchDuration,
-                transitionBuilder: _transitionBuilder,
-                layoutBuilder: (currentChild, previousChildren) {
-                  // allow overlapping fade/scale during transitions
-                  return Stack(children: <Widget>[
-                    ...previousChildren,
-                    if (currentChild != null) currentChild,
-                  ]);
-                },
-                child: _currentStep == 0
-                    ? KeyedSubtree(key: const ValueKey(0), child: _buildStep1())
-                    : KeyedSubtree(key: const ValueKey(1), child: _buildStep2()),
+          // 1. Blob Background Component
+          BlobBackground(),
+
+          // 2. Main content overlaid on top
+          Positioned.fill(
+            child: SafeArea(
+              child: Column( // This contains the original layout elements
+                children: [
+                  Padding(padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12), child: progress),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      // AnimatedSwitcher gives us fade+scale transitions
+                      child: AnimatedSwitcher(
+                        duration: switchDuration,
+                        transitionBuilder: _transitionBuilder,
+                        layoutBuilder: (currentChild, previousChildren) {
+                          // allow overlapping fade/scale during transitions
+                          return Stack(children: <Widget>[
+                            ...previousChildren,
+                            if (currentChild != null) currentChild,
+                          ]);
+                        },
+                        child: _currentStep == 0
+                            ? KeyedSubtree(key: const ValueKey(0), child: _buildStep1())
+                            : KeyedSubtree(key: const ValueKey(1), child: _buildStep2()),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

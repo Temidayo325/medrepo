@@ -1,178 +1,301 @@
 import 'package:flutter/material.dart';
-import 'profile/profile_picure.dart';
-import '../colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../colors.dart';
+import '../login.dart';
 import '../symptoms_diary.dart';
+import 'snackbar/error.dart';
+import 'snackbar/success.dart';
+import 'send_post_request.dart';
+import 'profile/profile_picure.dart';
+
+//--------------------------------------------------------------
+// REUSABLE HELPERS (NO UI + SAFE CONTEXT USAGE)
+//--------------------------------------------------------------
+
+Future<bool> showConfirmationDialog({
+  required BuildContext context,
+  required String title,
+  required String message,
+}) async {
+  return await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.logout, size: 48, color: AppColors.primaryGreen),
+            const SizedBox(height: 16),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
+            const SizedBox(height: 10),
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16, color: Colors.black87)),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: Colors.grey[200],
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text("Cancel",
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.black87)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: AppColors.primaryGreen,
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text("Logout",
+                        style: TextStyle(fontSize: 16, color: Colors.white)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  ) ??
+  false;
+}
+
+Future<void> showLoader(BuildContext context) async {
+  return showDialog(
+    context: context,
+    useRootNavigator: true,
+    barrierDismissible: false,
+    builder: (_) => const Center(child: CircularProgressIndicator()),
+  );
+}
+
+void hideLoader(BuildContext context) {
+  // Important: Use rootNavigator: true to pop a dialog shown with rootNavigator: true
+  Navigator.of(context, rootNavigator: true).pop();
+}
+
+//--------------------------------------------------------------
+// LOGOUT SERVICE (LOGIC ONLY — NO UI)
+//--------------------------------------------------------------
+
+class LogoutService {
+  static Future<void> logout() async {
+    final tokenBox = Hive.box('token');
+    final token = tokenBox.get('api_token');
+
+    // API logout (runs only if token exists)
+    if (token != null) {
+      await sendDataToApi(
+        'https://medrepo.fineworksstudio.com/api/patient/logout',
+        {},
+        method: "POST",
+      );
+    }
+
+    // Clear all data (regardless of API success)
+    final boxesToClear = [
+      Hive.box('profile'),
+      Hive.box('token'),
+      Hive.box('emergencyContacts'),
+      await Hive.openBox('tests'),
+      await Hive.openBox('symptoms'),
+      await Hive.openBox('patientProfile'),
+      await Hive.openBox('viralPanel'),
+      await Hive.openBox('medications'),
+    ];
+
+    for (final box in boxesToClear) {
+      await box.clear();
+    }
+  }
+}
+
+//--------------------------------------------------------------
+// REFACTORED SIDEBAR COMPONENT
+//--------------------------------------------------------------
 
 class YourSidebarComponent extends StatelessWidget {
   const YourSidebarComponent({super.key});
-  
+
+  // Fully refactored _handleLogout to manage async and context safety
+  Future<void> _handleLogout(BuildContext context) async {
+    // 1. Ask for confirmation
+    final shouldLogout = await showConfirmationDialog(
+      context: context,
+      title: "Confirm Logout",
+      message: "Are you sure you want to log out?",
+    );
+    if (!shouldLogout) return;
+    print(shouldLogout);
+    print(context.mounted);
+    // 2. Context Safety Check: Prevent "deactivated context" errors after the dialog closes.
+    if (!context.mounted) return;
+
+    // 3. Show Loader (using the root navigator)
+    showLoader(context);
+
+    bool success = false;
+    try {
+      // 4. Execute decoupled business logic (API, Hive clear)
+      await LogoutService.logout();
+      success = true;
+    } catch (e) {
+      // 5. Handle errors during service call
+      if (context.mounted) {
+        hideLoader(context);
+        showErrorSnack(context, "Logout failed: $e");
+      }
+    }
+
+    // 6. Final UI updates and navigation only if successful
+    if (success) {
+      // Context Safety Check again after the long API/Hive clear operation
+      if (!context.mounted) return;
+
+      hideLoader(context);
+      showSuccessSnack(context, "You have logged out successfully");
+
+      // 7. Redirect to Login screen using root navigator (to clear entire stack)
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (_) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final box = Hive.box('profile');
-    final profile = Map<String, dynamic>.from(box.toMap());
+    final profile = Map<String, dynamic>.from(Hive.box('profile').toMap());
+
     return Container(
       color: Colors.white,
       child: SafeArea(
         child: Column(
           children: [
-            // Sidebar Header
-            Container(
-              padding: EdgeInsets.all(40),
-              decoration: BoxDecoration(
-                color: AppColors.primaryGreen,
-              ),
-              child: Column( 
-                  children: [
-                      ProfileAvatar(),
-                      SizedBox(height: 15,),
-                      Text( profile['name'], style: TextStyle( fontSize: 22, fontWeight: FontWeight.bold,
-                            color: AppColors.mintGreen,),
-                        ),
-                      // IconButton(
-                      //   icon: Icon(Icons.close, color: Colors.white),
-                      //   onPressed: () => Navigator.pop(context),
-                      // ),
-                  ]
-                ),
-              ),
-            // Sidebar Menu Items
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  _buildSidebarItem(
-                    context,
-                    icon: Icons.home,
-                    title: 'Home',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navigate or perform action
-                    },
-                  ),
-                  _buildSidebarItem(
-                    context,
-                    icon: Icons.book,
-                    title: 'Symptoms diary',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => SymptomsDiaryPage()),
-                      );
-                      
-                    },
-                  ),
-                  _buildSidebarItem(
-                    context,
-                    icon: Icons.settings,
-                    title: 'Settings',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navigate to settings
-                    },
-                  ),
-                  _buildSidebarItem(
-                    context,
-                    icon: Icons.notifications,
-                    title: 'Notifications',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navigate to notifications
-                    },
-                  ),
-                  _buildSidebarItem(
-                    context,
-                    icon: Icons.help_outline,
-                    title: 'Help & Support',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navigate to help
-                    },
-                  ),
-                  _buildSidebarItem(
-                    context,
-                    icon: Icons.info_outline,
-                    title: 'About',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navigate to about
-                    },
-                  ),
-                  Divider(height: 32, thickness: 1),
-                  _buildSidebarItem(
-                    context,
-                    icon: Icons.logout,
-                    title: 'Logout',
-                    iconColor: Colors.red,
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Perform logout
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text('Logout'),
-                          content: Text('Are you sure you want to logout?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                // Perform actual logout
-                              },
-                              style: TextButton.styleFrom(foregroundColor: Colors.red),
-                              child: Text('Logout'),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // Footer
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'MedRepo v1.0',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
-              ),
-            ),
+            _buildHeader(profile),
+            Expanded(child: _buildMenu(context)),
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text("MedRepo v1.0", style: TextStyle(color: Colors.grey)),
+            )
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSidebarItem(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color? iconColor,
-  }) {
+  //--------------------------------------------------------------
+  // HEADER
+  //--------------------------------------------------------------
+
+  Widget _buildHeader(Map<String, dynamic> profile) {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      color: AppColors.primaryGreen,
+      child: Column(
+        children: [
+          const ProfileAvatar(),
+          const SizedBox(height: 15),
+          Text(
+            profile['name'] ?? 'Unknown User',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppColors.mintGreen,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //--------------------------------------------------------------
+  // MENU LIST
+  //--------------------------------------------------------------
+
+  Widget _buildMenu(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        _menuTile(context,
+            icon: Icons.home, title: 'Home', onTap: () => Navigator.pop(context)),
+        _menuTile(context,
+            icon: Icons.book,
+            title: 'Symptoms Diary',
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => SymptomsDiaryPage()),
+              );
+            }),
+        _menuTile(context,
+            icon: Icons.help_outline,
+            title: 'Help & Support',
+            onTap: () => Navigator.pop(context)),
+        _menuTile(context,
+            icon: Icons.info_outline,
+            title: 'About',
+            onTap: () => Navigator.pop(context)),
+
+        const Divider(),
+
+        // LOGOUT
+        _menuTile(context,
+            icon: Icons.logout,
+            iconColor: Colors.red,
+            title: 'Logout',
+            onTap: () async {
+              // Start the safe, async logout process
+              await _handleLogout(context);
+            }),
+      ],
+    );
+  }
+
+  //--------------------------------------------------------------
+  // REUSABLE MENU TILE
+  //--------------------------------------------------------------
+
+  Widget _menuTile(BuildContext context,
+      {required IconData icon,
+      required String title,
+      required VoidCallback onTap,
+      Color? iconColor}) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? AppColors.primaryGreen, size: 24),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: iconColor ?? Colors.black87,
-        ),
-      ),
+      leading: Icon(icon, color: iconColor ?? AppColors.primaryGreen),
+      title: Text(title,
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: iconColor ?? Colors.black87)),
       onTap: onTap,
-      hoverColor: AppColors.primaryGreen.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      hoverColor: AppColors.primaryGreen.withOpacity(.1),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 }

@@ -39,7 +39,7 @@ flutter:
 # ----------------------------------------------------------
 flutter_native_splash:
   color: "#f7f8fc"
-  image: assets/splash.png   
+  image: assets/solid-logo.png   
   android: true
   ios: true
 
