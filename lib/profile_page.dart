@@ -408,10 +408,7 @@ class ProfilePage extends StatelessWidget {
                       icon: Icon(Icons.biotech, color: Colors.white),
                       label: Text('View Viral Panel', style: TextStyle(color: Colors.white, fontSize: 16)),
                       onPressed: () async {
-                        
-                        // showSecureViralPanel(context: context, onLoadingStateChanged: (isLoading) => {
-                        //   showLoadingDialog(context, message: "Loading viral panel ...")
-                        // });
+                        showSecureViralPanel(context: context);
                       },
                     ),
                   ),

@@ -19,6 +19,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   local_auth: ^2.2.0
   http: ^1.1.0
+  dio: ^5.9.0
+  pretty_dio_logger: ^1.4.0
+
 
 dev_dependencies:
   flutter_test:
@@ -39,7 +42,7 @@ flutter:
 # ----------------------------------------------------------
 flutter_native_splash:
   color: "#f7f8fc"
-  image: assets/solid-logo.png   
+  image: assets/splash.png   
   android: true
   ios: true
 

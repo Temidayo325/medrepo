@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:medrepo/components/side_bar_navigation.dart';
 import 'dart:async'; 
-
+import '../loader.dart';
+import '../send_post_request.dart';
 // Assuming these are external imports, we keep them:
 import '../../colors.dart'; 
 import '../snackbar/error.dart'; 
@@ -37,29 +39,26 @@ class EmptyState extends StatelessWidget {
     );
   }
 }
-
-// ==========================================================
-// REUSABLE SERVICE FUNCTION
-// ==========================================================
-
 /// Handles the full workflow: Security check -> Data Fetching -> Displaying the Viral Panel.
 Future<void> showSecureViralPanel({
   required BuildContext context,
-  required Function(bool isChecking) onLoadingStateChanged, // Callback for loading state
 }) async {
   final LocalAuthentication auth = LocalAuthentication();
   const List<String> allowedShortNames = ['hpv', 'hiv', 'hbv'];
 
-  // MOCK: Simulates the API call to retrieve the viral panel data.
   Future<List<Map<String, String>>> fetchViralPanelData() async {
-    await Future.delayed(const Duration(seconds: 2));
-
-    return [
-      {'short_name': 'hpv', 'result': 'NEGATIVE', 'date': '2023-11-01'},
-      {'short_name': 'hiv', 'result': 'POSITIVE', 'date': '2023-10-15'},
-      {'short_name': 'hbv', 'result': 'UNDETECTED', 'date': '2023-09-20'},
-      {'short_name': 'rsv', 'result': 'DETECTED', 'date': '2023-12-01'}, 
-    ];
+    try {
+      final response = await sendDataToApi("https://medrepo.fineworksstudio.com/api/patient/special_test", {}, method: "GET");
+      if (response['statuus'] == true && response['status_code'] == 200 && response['data'] is List) {
+         return List<Map<String, String>>.from(response['data']);
+      } else {
+         // API indicated failure or data was not a List, return empty list
+         return []; 
+    }
+  } catch (e) {
+      // Critical: Network error or exception occurred, return empty list
+     return []; 
+  }
   }
 
   // Filters the raw data to only include 'hpv', 'hiv', 'hbv'.
@@ -128,7 +127,7 @@ Future<void> showSecureViralPanel({
                           child: EmptyState(
                             icon: Icons.search_off_rounded,
                             message: "No results available for HPV, HIV, or HBV at this time.",
-                            color: AppColors.darkGray,
+                            color: AppColors.mediumGray,
                           ),
                         )
                       : GridView.builder(
@@ -158,7 +157,6 @@ Future<void> showSecureViralPanel({
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    // FIX: Replaced cardColor.withValues(alpha: 0.4) with cardColor.withOpacity(0.4)
                                     color: cardColor.withOpacity(0.4), 
                                     blurRadius: 5,
                                     offset: const Offset(0, 3),
@@ -227,10 +225,7 @@ Future<void> showSecureViralPanel({
       },
     );
   }
-
-  // --- Start Core Logic Execution ---
-  onLoadingStateChanged(true); // Start loading
-
+  
   try {
     // Step 1: Check security availability
     final bool canCheckBiometrics = await auth.canCheckBiometrics;
@@ -283,7 +278,7 @@ Future<void> showSecureViralPanel({
         },
       );
       proceedToFetch = confirmed == true;
-      
+      showLoadingDialog(context, message: "Loading viral panel");
       if (confirmed == true) {
         // Use imported function
         showSuccessSnack(context, "Security bypass confirmed. Fetching data...");
@@ -299,10 +294,7 @@ Future<void> showSecureViralPanel({
       // Auth/Confirmation successful - Fetch and filter data
       final rawData = await fetchViralPanelData();
       final filteredData = filterPanelData(rawData);
-      
-      // REMOVED: Navigator.of(context).pop(true);
-      // This line was closing the wrong context and is unnecessary as the dialog is already closed.
-
+     hideLoadingDialog(context);
       // Display the bottom sheet with the results
       await showViralPanelBottomSheet(filteredData);
     }
@@ -312,7 +304,7 @@ Future<void> showSecureViralPanel({
     // Use imported function
     showErrorSnack(context, 'Access error: ${e.toString()}');
   } finally {
-    onLoadingStateChanged(false); // End loading
+    hideLoader(context);
   }
 }
 
@@ -336,10 +328,7 @@ class _SecureContentAccessPageState extends State<SecureContentAccessPage> {
     setState(() => _isChecking = true);
     
     await showSecureViralPanel(
-      context: context,
-      onLoadingStateChanged: (isLoading) {
-        setState(() => _isChecking = isLoading);
-      },
+      context: context
     );
   }
 

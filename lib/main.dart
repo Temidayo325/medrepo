@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'root_page.dart';
 import 'login.dart';
-
+import 'components/dio_request_instance.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:flutter/foundation.dart';
 import  'register.dart';
@@ -25,6 +24,7 @@ void main() async {
   //   await box.clear();
   //   print("Tests box cleared (debug mode)!");
   // }
+  setupDioInterceptor();
   runApp(MyApp());
 }
 
