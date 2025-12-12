@@ -44,7 +44,7 @@ class EmptyState extends StatelessWidget {
 Future<void> showSecureViralPanel({
   required BuildContext context,
 }) async {
-  final LocalAuthentication auth = LocalAuthentication();
+  // final LocalAuthentication auth = LocalAuthentication();
   const List<String> allowedShortNames = ['hpv', 'hiv', 'hbv'];
 
   Future<List<Map<String, String>>> fetchViralPanelData() async {

@@ -350,7 +350,7 @@ class ProfilePage extends StatelessWidget {
                             )
                           else
                             ...contacts.asMap().entries.map((entry) {
-                              final index = entry.key;
+                              // final index = entry.key;
                               final contact = entry.value;
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),

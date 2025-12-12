@@ -7,10 +7,9 @@ import 'snackbar/error.dart';
 import 'snackbar/success.dart';
 import 'send_post_request.dart';
 import 'profile/profile_picure.dart';
+import '../about.dart';
+import '../contact.dart';
 
-//--------------------------------------------------------------
-// REUSABLE HELPERS (NO UI + SAFE CONTEXT USAGE)
-//--------------------------------------------------------------
 
 Future<bool> showConfirmationDialog({
   required BuildContext context,
@@ -255,11 +254,23 @@ class YourSidebarComponent extends StatelessWidget {
         _menuTile(context,
             icon: Icons.help_outline,
             title: 'Help & Support',
-            onTap: () => Navigator.pop(context)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ContactUsPage()),
+              );
+            }),
         _menuTile(context,
             icon: Icons.info_outline,
             title: 'About',
-            onTap: () => Navigator.pop(context)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AboutUsPage()),
+              );
+            }),
 
         const Divider(),
 
@@ -293,7 +304,7 @@ class YourSidebarComponent extends StatelessWidget {
               fontWeight: FontWeight.w500,
               color: iconColor ?? Colors.black87)),
       onTap: onTap,
-      hoverColor: AppColors.primaryGreen.withOpacity(.1),
+      hoverColor: AppColors.primaryGreen.withValues(alpha: .1),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );

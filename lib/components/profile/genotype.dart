@@ -49,8 +49,6 @@ class _MedicalInfoCardState extends State<MedicalInfoCard> {
     setState(() => _isRefreshing = true);
 
     try {
-      // Fetch from API
-      final profileBox = Hive.box('profile');
       final response = await sendDataToApi("https://medrepo.fineworksstudio.com/api/patient/special_test", {}, method: "GET");
 
       if (response['status'] == true && response['data'] != null) {
