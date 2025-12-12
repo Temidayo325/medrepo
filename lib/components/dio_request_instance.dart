@@ -8,12 +8,15 @@ final Dio dioInstance = Dio(
   BaseOptions(
     // Optional: Set a global base URL if your requests all go to the same domain.
     // baseUrl: 'https://your-api-base-url.com/', 
-    connectTimeout: const Duration(seconds: 10), // Example timeout
-    receiveTimeout: const Duration(seconds: 10), // Example timeout
+    connectTimeout: const Duration(seconds: 30), // Example timeout
+    receiveTimeout: const Duration(seconds: 30),
+    sendTimeout: const Duration(seconds: 30),  // Example timeout
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     },
+    followRedirects: true,
+    maxRedirects: 5,
   ),
 );
 

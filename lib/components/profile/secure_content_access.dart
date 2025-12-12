@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:local_auth/local_auth.dart';
-import 'package:medrepo/components/side_bar_navigation.dart';
+import 'package:flutter/services.dart';
 import 'dart:async'; 
 import '../loader.dart';
 import '../send_post_request.dart';
@@ -60,6 +61,136 @@ Future<void> showSecureViralPanel({
      return []; 
   }
   }
+  
+  Future<bool> _verifyPassword(String password) async {
+    try {
+      // Get user email from Hive
+      final profileBox = Hive.box('profile');
+      final email = profileBox.get('email');
+      
+      if (email == null) {
+        print('No email found in profile');
+        return false;
+      }
+      
+      // Call your API to verify password
+      final response = await sendDataToApi(
+        'https://medrepo.fineworksstudio.com/api/patient/verify-password',
+        {
+          'email': email,
+          'password': password,
+        },
+        method: 'POST',
+      );
+      
+      return response['status'] == true;
+      
+    } catch (e) {
+      print('Password verification error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _showPasswordDialog(BuildContext context) async {
+    final passwordController = TextEditingController();
+    bool isLoading = false;
+  
+  final result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: const Text('Enter Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Biometric authentication not available. Please enter your account password to access sensitive results.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              enabled: !isLoading,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.lock),
+              ),
+              onSubmitted: (_) async {
+                if (!isLoading && passwordController.text.isNotEmpty) {
+                  setState(() => isLoading = true);
+                  final isValid = await _verifyPassword(passwordController.text);
+                  
+                  if (context.mounted) {
+                    if (isValid) {
+                      Navigator.pop(context, true);
+                    } else {
+                      setState(() => isLoading = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Incorrect password. Please try again.'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                      passwordController.clear();
+                    }
+                  }
+                }
+              },
+            ),
+            if (isLoading) ...[
+              const SizedBox(height: 16),
+              const CircularProgressIndicator(),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: isLoading ? null : () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: isLoading ? null : () async {
+              if (passwordController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter your password'),
+                    backgroundColor: AppColors.error,
+                  ),
+                );
+                return;
+              }
+              
+              setState(() => isLoading = true);
+              final isValid = await _verifyPassword(passwordController.text);
+              
+              if (context.mounted) {
+                if (isValid) {
+                  Navigator.pop(context, true);
+                } else {
+                  setState(() => isLoading = false);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Incorrect password. Please try again.'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                  passwordController.clear();
+                }
+              }
+            },
+            child: const Text('Verify'),
+          ),
+        ],
+      ),
+    ),
+  );
+  
+  passwordController.dispose();
+  return result ?? false;
+}
 
   // Filters the raw data to only include 'hpv', 'hiv', 'hbv'.
   List<Map<String, String>> filterPanelData(List<Map<String, String>> rawData) {
@@ -227,85 +358,137 @@ Future<void> showSecureViralPanel({
   }
   
   try {
-    // Step 1: Check security availability
-    final bool canCheckBiometrics = await auth.canCheckBiometrics;
-    final bool isDeviceSupported = await auth.isDeviceSupported();
+  // Step 1: Check security availability
+  final LocalAuthentication auth = LocalAuthentication();
+  final bool canCheckBiometrics = await auth.canCheckBiometrics;
+  final bool isDeviceSupported = await auth.isDeviceSupported();
 
-    final bool hasSecurity = canCheckBiometrics && isDeviceSupported;
-    bool proceedToFetch = false;
+  final bool hasSecurity = canCheckBiometrics || isDeviceSupported;
+  bool proceedToFetch = false;
+  
+  if (hasSecurity) {
+    // Device has security - Check what types are available
+    List<BiometricType> availableBiometrics = [];
     
-    if (hasSecurity) {
-      // Device has security - Trigger Biometric/PIN Auth
-      final bool didAuthenticate = await auth.authenticate(
-        localizedReason: 'Authenticate to access sensitive viral panel results.',
-        options: const AuthenticationOptions(
-          stickyAuth: true,
-          biometricOnly: false,
-        ),
-      );
-      proceedToFetch = didAuthenticate;
-      if (didAuthenticate) {
-        // Use imported function
-        showSuccessSnack(context, "Authentication successful. Fetching data...");
-      } else {
-        // Use imported function
-        showErrorSnack(context, 'Authentication failed or canceled.');
+    try {
+      availableBiometrics = await auth.getAvailableBiometrics();
+    } catch (e) {
+      print('Error getting biometrics: $e');
+    }
+    
+    if (availableBiometrics.isNotEmpty) {
+      // Has actual biometric (fingerprint/face) - use biometricOnly: true
+      try {
+        final bool didAuthenticate = await auth.authenticate(
+          localizedReason: 'Authenticate to access sensitive viral panel results',
+          options: const AuthenticationOptions(
+            stickyAuth: true,
+            biometricOnly: true, // CRITICAL: Only use actual biometrics
+            sensitiveTransaction: true,
+          ),
+        );
+        
+        proceedToFetch = didAuthenticate;
+        
+        if (didAuthenticate) {
+          if (context.mounted) {
+            showSuccessSnack(context, "Authentication successful. Fetching data...");
+          }
+        } else {
+          if (context.mounted) {
+            showErrorSnack(context, 'Authentication failed or canceled.');
+          }
+        }
+        
+      } on PlatformException catch (e) {
+        print('Biometric auth error: ${e.code} - ${e.message}');
+        
+        // Handle specific errors
+        if (e.code == 'NotAvailable' || e.code == 'NotEnrolled') {
+          // Biometric not available, fallback to password
+          if (context.mounted) {
+            proceedToFetch = await _showPasswordDialog(context);
+          }
+        } else {
+          if (context.mounted) {
+            showErrorSnack(context, 'Authentication error. Please try again.');
+          }
+        }
       }
-
+      
     } else {
-      // Device has NO security - Show Confirmation Dialog
-      final bool? confirmed = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Security Warning'),
-            content: const Text(
-              'Your device screen lock is not enabled. Proceeding will expose sensitive data without protection. Do you want to continue?',
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('Cancel', style: TextStyle(color: AppColors.deepGreen)),
-                onPressed: () => Navigator.of(context).pop(false),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-                child: const Text('Proceed Anyway', style: TextStyle(color: Colors.white)),
-                onPressed: () => Navigator.of(context).pop(true),
-              ),
-            ],
-          );
-        },
-      );
-      proceedToFetch = confirmed == true;
-      showLoadingDialog(context, message: "Loading viral panel");
-      if (confirmed == true) {
-        // Use imported function
-        showSuccessSnack(context, "Security bypass confirmed. Fetching data...");
-      } else {
-        // Use imported function
-        showErrorSnack(context, "Access denied by user confirmation.");
+      // Device has security (PIN/pattern) but NO biometric enrolled
+      // Use password authentication instead
+      if (context.mounted) {
+        proceedToFetch = await _showPasswordDialog(context);
       }
     }
 
-    if (!context.mounted) return;
+  } else {
+    // Device has NO security at all - Show warning dialog
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Security Warning'),
+          content: const Text(
+            'Your device has no screen lock enabled. Proceeding will expose sensitive data without protection. Do you want to continue?',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel', style: TextStyle(color: AppColors.deepGreen)),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+              child: const Text('Proceed Anyway', style: TextStyle(color: Colors.white)),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
+        );
+      },
+    );
+    
+    proceedToFetch = confirmed == true;
+    
+    if (confirmed == true) {
+      if (context.mounted) {
+        showSuccessSnack(context, "Security bypass confirmed. Fetching data...");
+      }
+    } else {
+      if (context.mounted) {
+        showErrorSnack(context, "Access denied by user.");
+      }
+    }
+  }
 
-    if (proceedToFetch) {
-      // Auth/Confirmation successful - Fetch and filter data
-      final rawData = await fetchViralPanelData();
-      final filteredData = filterPanelData(rawData);
-     hideLoadingDialog(context);
+  if (!context.mounted) return;
+
+  if (proceedToFetch) {
+    // Show loading
+    showLoadingDialog(context, message: "Loading viral panel");
+    
+    // Auth/Confirmation successful - Fetch and filter data
+    final rawData = await fetchViralPanelData();
+    final filteredData = filterPanelData(rawData);
+    
+    if (context.mounted) {
+      hideLoadingDialog(context);
       // Display the bottom sheet with the results
       await showViralPanelBottomSheet(filteredData);
     }
-
-  } catch (e) {
-    if (!context.mounted) return;
-    // Use imported function
-    showErrorSnack(context, 'Access error: ${e.toString()}');
-  } finally {
-    hideLoader(context);
   }
+
+} on PlatformException catch (e) {
+  if (!context.mounted) return;
+  print('Platform exception: ${e.code} - ${e.message}');
+  showErrorSnack(context, 'Authentication error: ${e.message ?? "Unknown error"}');
+} catch (e) {
+  if (!context.mounted) return;
+  print('General error: $e');
+  showErrorSnack(context, 'Access error: ${e.toString()}');
+}
 }
 
 // ==========================================================

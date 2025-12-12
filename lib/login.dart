@@ -72,6 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
             'gender': userData['gender'],
             'phone': userData['phone'],
             'identifier': userData['identifier'],
+            'age': userData['age']
           });
           
           // Store token securely

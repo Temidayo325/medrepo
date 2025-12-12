@@ -198,12 +198,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           );
         }
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
-      
-      // Make sure to close loading dialog on error
-      // Navigator.of(context, rootNavigator: true).pop();
       hideLoadingDialog(context);
+       // Detailed logging
+      print('=== Registration Error Debug ===');
+      print('Error Type: ${e.runtimeType}');
+      print('Error: $e');
+      print('StackTrace: $stackTrace');
+
+      print('=== End Debug ===');
       showErrorSnack(context, 'Network error. Please try again.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

@@ -5,7 +5,8 @@ import 'components/profile/edit_health_record.dart';
 import 'components/profile/add_emergency_contact.dart';
 import 'components/profile/profile_picure.dart';
 import 'colors.dart';
-import 'components/loader.dart';
+import 'components/profile/genotype.dart';
+// import 'components/loader.dart';
 
 class ProfilePage extends StatelessWidget {
   ProfilePage({super.key});
@@ -196,7 +197,8 @@ class ProfilePage extends StatelessWidget {
                           ),
                   ),
                   SizedBox(height: 30),
-
+                  MedicalInfoCard(),
+                  SizedBox(height: 30),
                   // ========== HEALTH INFORMATION SECTION ==========
                   ValueListenableBuilder(
                     valueListenable: patientProfileBox.listenable(),
