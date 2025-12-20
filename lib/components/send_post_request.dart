@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-// import 'package:hive_flutter/hive_flutter.dart'; 
 import 'dio_request_instance.dart'; // Import the singleton instance
 
 Future<Map<String, dynamic>> sendDataToApi(
@@ -9,17 +8,10 @@ Future<Map<String, dynamic>> sendDataToApi(
 }) async {
   // 1. Use the globally configured Dio instance
   final dio = dioInstance; 
-
-  // --- Simplified Logic ---
-  // Headers (Authorization, Content-Type) are managed by the Dio Interceptor/BaseOptions
-  print("Request data: $data");
-  print("Method: $method");
-
   Response response; // Dio's Response type
 
   try {
-    // We only need to set the HTTP method here
-    final options = Options(method: method); 
+   final options = Options(method: method); 
 
     switch (method) {
       case "POST":
@@ -50,21 +42,10 @@ Future<Map<String, dynamic>> sendDataToApi(
       default:
         throw Exception("Unsupported HTTP method: $method");
     }
-
-    print("Response Status: ${response.statusCode}");
-    print("Response Body: ${response.data}");
-    
-    // Dio successfully completed the request (2xx status).
-    // response.data is already the decoded JSON (Map<String, dynamic>).
     return response.data; 
 
   } on DioException catch (e) {
-    // Catch Dio-specific errors (network, timeout, non-2xx status codes)
-    print("Dio Error Status: ${e.response?.statusCode}");
-    print("Dio Error Response: ${e.response?.data}");
-    
-    // Throw an exception that includes the server's error message
-    if (e.response != null) {
+     if (e.response != null) {
       throw Exception(
         'API call failed with status ${e.response!.statusCode}: ${e.response!.data}',
       );

@@ -100,12 +100,13 @@ Future<void> showSecureViralPanel({
     barrierDismissible: false,
     builder: (context) => StatefulBuilder(
       builder: (context, setState) => AlertDialog(
-        title: const Text('Enter Password'),
+        title: const Text('Enter Password', style: TextStyle(color: AppColors.darkGreen, fontWeight: FontWeight.bold),),
+        backgroundColor: AppColors.lightBackground,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Biometric authentication not available. Please enter your account password to access sensitive results.',
+              'Biometric authentication not available. Please enter your account password to access results.', style: TextStyle(color: AppColors.mediumGray),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -113,10 +114,13 @@ Future<void> showSecureViralPanel({
               obscureText: true,
               enabled: !isLoading,
               autofocus: true,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Password',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.lock),
+                labelStyle: TextStyle(color: AppColors.darkGreen),
+                filled: true,
+                fillColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                prefixIcon: Icon(Icons.lock, color: AppColors.darkGreen,),
               ),
               onSubmitted: (_) async {
                 if (!isLoading && passwordController.text.isNotEmpty) {
@@ -181,7 +185,7 @@ Future<void> showSecureViralPanel({
                 }
               }
             },
-            child: const Text('Verify'),
+            child: Text('Verify', style: TextStyle(color: AppColors.deepGreen, fontWeight: FontWeight.bold),),
           ),
         ],
       ),

@@ -14,9 +14,9 @@ class ViralPanelComponent extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.primaryGreen.withOpacity(0.1),
+        color: AppColors.primaryGreen.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.deepGreen.withOpacity(0.5)),
+        border: Border.all(color: AppColors.deepGreen.withValues(alpha: 0.5)),
       ),
       child: const Column(
         mainAxisSize: MainAxisSize.min,

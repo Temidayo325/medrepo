@@ -20,26 +20,18 @@ final Dio dioInstance = Dio(
   ),
 );
 
-// Add an Interceptor to automatically handle token injection
-// This replaces the manual 'header' construction in your old function.
+
 void setupDioInterceptor() {
   dioInstance.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) {
-        // Fetch the token from Hive before every request
         final token = Hive.box('token').get('api_token', defaultValue: '');
-        
-        // Add Authorization header if the token exists
         if (token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         
-        // You can add logging here too, if needed
-        print("Request to: ${options.uri}");
-        
         return handler.next(options);
       },
-      // You can also add onError or onResponse handling here globally
     ),
   );
 }
