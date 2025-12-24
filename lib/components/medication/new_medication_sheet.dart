@@ -24,36 +24,51 @@ class NewMedicationSheet extends StatefulWidget {
 class _NewMedicationSheetState extends State<NewMedicationSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _formController;
-  late final TextEditingController _frequencyController;
   late final TextEditingController _dosageController;
   late final TextEditingController _quantityController;
   late final TextEditingController _therapyController;
+
+  // Dropdown values
+  String? _selectedDosageForm;
+  String? _selectedFrequency;
+
+  // Dropdown options
+  final List<String> _dosageForms = [
+    'Tablet',
+    'Capsule',
+    'Syrup',
+    'Suspension',
+    'Cream',
+    'Lotion',
+    'Gutt',
+    'Injection',
+  ];
+
+  final List<String> _frequencies = [
+    'Once daily',
+    'Twice daily',
+    'Thrice daily',
+  ];
 
   @override
   void initState() {
     super.initState();
     final med = widget.existingMedication;
     
-    debugPrint('=== NewMedicationSheet initState ===');
-    debugPrint('Existing medication: $med');
-    debugPrint('Index: ${widget.index}');
-    debugPrint('ID from existing medication: ${med?['id']}');
-    
     _nameController = TextEditingController(text: med?['name'] ?? '');
-    _formController = TextEditingController(text: med?['dosage_form'] ?? '');
-    _frequencyController = TextEditingController(text: med?['frequency'] ?? '');
     _dosageController = TextEditingController(text: med?['dosage_strength'] ?? '');
     _quantityController =
         TextEditingController(text: med != null ? med['quantity'].toString() : '');
     _therapyController = TextEditingController(text: med?['duration_of_therapy'] ?? '');
+    
+    // Initialize dropdown values from existing medication
+    _selectedDosageForm = med?['dosage_form'];
+    _selectedFrequency = med?['frequency'];
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _formController.dispose();
-    _frequencyController.dispose();
     _dosageController.dispose();
     _quantityController.dispose();
     _therapyController.dispose();
@@ -99,10 +114,28 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                   ),
                 ),
                 SizedBox(height: 15),
-                _buildTextField(_nameController, "Name"),
-                _buildTextField(_dosageController, "Dosage Strength"),
-                _buildTextField(_formController, "Dosage form (tablet, syrup, etc)"),
-                _buildTextField(_frequencyController, "Frequency (e.g., 500mg • 2x daily)"),
+                _buildTextField(_nameController, "Medication Name"),
+                _buildTextField(_dosageController, "Dosage Strength (e.g., 500mg)"),
+                _buildDropdownField(
+                  label: "Dosage Form",
+                  value: _selectedDosageForm,
+                  items: _dosageForms,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDosageForm = value;
+                    });
+                  },
+                ),
+                _buildDropdownField(
+                  label: "Frequency",
+                  value: _selectedFrequency,
+                  items: _frequencies,
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedFrequency = value;
+                    });
+                  },
+                ),
                 _buildTextField(_therapyController, "Duration of Therapy (e.g., 2 weeks)"),
                 _buildTextField(_quantityController, "Quantity", isNumber: true),
                 SizedBox(height: 20),
@@ -113,17 +146,27 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                   ),
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
+                      // Validate dropdown selections
+                      if (_selectedDosageForm == null) {
+                        showErrorSnack(context, 'Please select a dosage form');
+                        return;
+                      }
+                      if (_selectedFrequency == null) {
+                        showErrorSnack(context, 'Please select a frequency');
+                        return;
+                      }
+
                       // Dismiss keyboard first
                       FocusScope.of(context).unfocus();
                       await Future.delayed(const Duration(milliseconds: 100));
                       
                       final isCreating = widget.existingMedication == null;
                       
-                      // Build the payload
+                      // Build the payload with consistent formatting
                       final newMed = {
                         'name': _nameController.text.trim(),
-                        'dosage_form': _formController.text.trim(),
-                        'frequency': _frequencyController.text.trim(),
+                        'dosage_form': _selectedDosageForm!, // Consistent format from dropdown
+                        'frequency': _selectedFrequency!,    // Consistent format from dropdown
                         'dosage_strength': _dosageController.text.trim(),
                         'quantity': int.parse(_quantityController.text),
                         'duration_of_therapy': _therapyController.text.trim(),
@@ -133,7 +176,6 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                       if (!isCreating) {
                         newMed['created_at'] = widget.existingMedication?['created_at'] ?? 
                                                DateTime.now().toIso8601String();
-                        // Don't include ID in the request body for update - it's in the URL
                       } else {
                         newMed['created_at'] = DateTime.now().toIso8601String();
                       }
@@ -175,8 +217,6 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                         }
 
                         // CRITICAL: Use the data returned from the server
-                        // This ensures we get the server-generated ID for new medications
-                        // and preserve the ID for updated medications
                         final savedMedication = Map<String, dynamic>.from(response['data']);
                         
                         debugPrint('=== SAVING TO HIVE ===');
@@ -238,6 +278,44 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
             borderSide: BorderSide.none,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownField({
+    required String label,
+    required String? value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: AppColors.darkGreen),
+          filled: true,
+          fillColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        dropdownColor: Colors.white,
+        icon: Icon(Icons.arrow_drop_down, color: AppColors.primaryGreen),
+        items: items.map((String item) {
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(
+              item,
+              style: TextStyle(color: AppColors.darkGreen),
+            ),
+          );
+        }).toList(),
+        onChanged: onChanged,
+        validator: (value) => value == null ? "Please select $label" : null,
       ),
     );
   }

@@ -33,8 +33,14 @@ class MedicationDetailsSheet extends StatelessWidget {
         assetName = 'assets/dosage_form/capsule.png';
       case 'syrup':
         assetName = 'assets/dosage_form/syrup.png';
+      case 'suspension':
+        assetName = 'assets/dosage_form/syrup.png'; // Use syrup image for suspension
+      case 'cream':
+      case 'lotion':
       case 'ointment':
         assetName = 'assets/dosage_form/ointment.png';
+      case 'gutt':
+        assetName = 'assets/dosage_form/syrup.png'; // Use syrup image for gutt (drops)
       default:
         assetName = 'assets/dosage_form/tablet.png';
     }
@@ -45,6 +51,31 @@ class MedicationDetailsSheet extends StatelessWidget {
       height: size,
       fit: BoxFit.contain,
     );
+  }
+
+  /// Returns formatted quantity with appropriate unit based on dosage form
+  String _getFormattedQuantity() {
+    final formLower = dosage_form.toLowerCase();
+    
+    switch (formLower) {
+      case 'tablet':
+        return quantity == 1 ? '1 tablet' : '$quantity tablets';
+      case 'capsule':
+        return quantity == 1 ? '1 capsule' : '$quantity capsules';
+      case 'injection':
+        return quantity == 1 ? '1 injection' : '$quantity injections';
+      case 'syrup':
+      case 'suspension':
+        return '${quantity}mL';
+      case 'cream':
+      case 'lotion':
+      case 'ointment':
+        return '${quantity}g';
+      case 'gutt':
+        return quantity == 1 ? '1 drop' : '$quantity drops';
+      default:
+        return '$quantity';
+    }
   }
 
   @override
@@ -89,22 +120,38 @@ class MedicationDetailsSheet extends StatelessWidget {
                         children: [
                           Text(
                             'Drug Name',
-                            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 14, color: Colors.grey),
+                            style: TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: 14,
+                              color: Colors.grey
+                            ),
                           ),
                           SizedBox(height: 4),
                           Text(
                             name,
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryGreen
+                            ),
                           ),
                           SizedBox(height: 25),
                           Text(
                             'Dosage Strength',
-                            style: TextStyle(fontWeight: FontWeight.normal, fontSize: 14, color: Colors.grey),
+                            style: TextStyle(
+                              fontWeight: FontWeight.normal,
+                              fontSize: 14,
+                              color: Colors.grey
+                            ),
                           ),
                           SizedBox(height: 4),
                           Text(
                             dosageStrength,
-                            style: TextStyle(fontSize: 24,fontWeight: FontWeight.bold, color: AppColors.primaryGreen),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryGreen
+                            ),
                           ),
                         ],
                       ),
@@ -119,7 +166,7 @@ class MedicationDetailsSheet extends StatelessWidget {
               _buildDetailRow('Dosage form', dosage_form),
               _buildDetailRow('Dose', frequency),
               _buildDetailRow('Duration of therapy', durationOfTherapy),
-              _buildDetailRow('Quantity', 'Total: $quantity'),
+              _buildDetailRow('Quantity', _getFormattedQuantity()), // Updated to use formatted quantity
               _buildDetailRow('Created At', createdAt),
 
               const SizedBox(height: 30),

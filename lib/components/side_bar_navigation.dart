@@ -102,19 +102,27 @@ void hideLoader(BuildContext context) {
 
 class LogoutService {
   static Future<void> logout() async {
+    // 1. Get the email before clearing profile
+    final profileBox = Hive.box('profile');
+    final email = profileBox.get('email');
+    
     final tokenBox = Hive.box('token');
     final token = tokenBox.get('api_token');
 
-    // API logout (runs only if token exists)
+    // 2. API logout (runs only if token exists)
     if (token != null) {
-      await sendDataToApi(
-        'https://medrepo.fineworksstudio.com/api/patient/logout',
-        {},
-        method: "POST",
-      );
+      try {
+        await sendDataToApi(
+          'https://medrepo.fineworksstudio.com/api/patient/logout',
+          {},
+          method: "POST",
+        );
+      } catch (e) {
+        // Continue with local logout even if API fails
+      }
     }
 
-    // Clear all data (regardless of API success)
+    // 3. Clear all data (regardless of API success)
     final boxesToClear = [
       Hive.box('profile'),
       Hive.box('token'),
@@ -129,9 +137,16 @@ class LogoutService {
     for (final box in boxesToClear) {
       await box.clear();
     }
+    
+    // 4. Save the email for next login (after clearing)
+    final authBox = Hive.box('register');
+    await authBox.put('isRegistered', false);
+    
+    if (email != null && email.toString().isNotEmpty) {
+      await authBox.put('saved_email', email);
+    }
   }
 }
-
 //--------------------------------------------------------------
 // REFACTORED SIDEBAR COMPONENT
 //--------------------------------------------------------------
@@ -148,8 +163,6 @@ class YourSidebarComponent extends StatelessWidget {
       message: "Are you sure you want to log out?",
     );
     if (!shouldLogout) return;
-    print(shouldLogout);
-    print(context.mounted);
     // 2. Context Safety Check: Prevent "deactivated context" errors after the dialog closes.
     if (!context.mounted) return;
 
@@ -239,8 +252,8 @@ class YourSidebarComponent extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        _menuTile(context,
-            icon: Icons.home, title: 'Home', onTap: () => Navigator.pop(context)),
+        // _menuTile(context,
+            // icon: Icons.home, title: 'Home', onTap: () => Navigator.pop(context)),
         _menuTile(context,
             icon: Icons.book,
             title: 'Symptoms Diary',

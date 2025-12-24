@@ -26,6 +26,28 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isSubmitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    _loadSavedEmail();
+  }
+
+  /// Load saved email from Hive if available
+  Future<void> _loadSavedEmail() async {
+    try {
+      final authBox = Hive.box('register');
+      final savedEmail = authBox.get('saved_email');
+      
+      if (savedEmail != null && savedEmail.toString().isNotEmpty) {
+        setState(() {
+          emailController.text = savedEmail.toString();
+        });
+      }
+    } catch (e) {
+      print('Error loading saved email: $e');
+    }
+  }
+
+  @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
@@ -101,6 +123,9 @@ class _LoginScreenState extends State<LoginScreen> {
           // Mark as logged in
           final authBox = Hive.box('register');
           await authBox.put('isRegistered', true);
+          
+          // 5. Save email for next login (keep it even after successful login)
+          await authBox.put('saved_email', userData['email']);
 
           // Success message
           if (mounted) {
@@ -156,15 +181,14 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.mintGreen,
       extendBodyBehindAppBar: true, 
-      resizeToAvoidBottomInset: false, // Ensures blobs don't jump when keyboard opens
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // Ensure back icon (if any) is visible
         iconTheme: IconThemeData(color: AppColors.deepGreen),
       ),
       body: Stack(
-        fit: StackFit.expand, // CRITICAL: Forces stack to fill the screen height
+        fit: StackFit.expand,
         children: [
           // Top Right Blob
           Positioned(
@@ -173,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Opacity(
               opacity: 0.3,
               child: CustomPaint(
-                size: const Size(300, 300), // Slightly larger
+                size: const Size(300, 300),
                 painter: BlobPainter(color: AppColors.deepGreen),
               ),
             ),
@@ -181,12 +205,12 @@ class _LoginScreenState extends State<LoginScreen> {
           
           // Bottom Left Blob
           Positioned(
-            bottom: -120, // Adjusted to ensure no gap
+            bottom: -120,
             left: -120,
             child: Opacity(
               opacity: 0.3,
               child: CustomPaint(
-                size: const Size(300, 300), // Slightly larger
+                size: const Size(300, 300),
                 painter: BlobPainter(color: AppColors.primaryGreen),
               ),
             ),
@@ -195,7 +219,6 @@ class _LoginScreenState extends State<LoginScreen> {
           // Main Content
           SafeArea(
             child: SingleChildScrollView(
-              // Add padding for keyboard since we disabled resizeToAvoidBottomInset
               padding: EdgeInsets.fromLTRB(
                 24.0, 
                 8.0, 
@@ -210,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const SizedBox(height: 60),
                     
-                    // ANIMATED LOGO HERE
+                    // ANIMATED LOGO
                     const Center(
                       child: AnimatedLogo(size: 60,),
                     ),
@@ -235,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 40),
 
-                    // EMAIL
+                    // EMAIL - Now with prefilled value
                     TextFormField(
                       controller: emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -251,11 +274,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderSide: BorderSide.none,
                         ),
                         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                        // Add a suffix icon to allow clearing the email if needed
+                        suffixIcon: emailController.text.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.clear, color: AppColors.darkGreen),
+                                onPressed: () {
+                                  setState(() {
+                                    emailController.clear();
+                                  });
+                                },
+                              )
+                            : null,
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Please enter your email';
                         if (!v.contains('@') || !v.contains('.')) return 'Please enter a valid email';
                         return null;
+                      },
+                      onChanged: (value) {
+                        // Update UI to show/hide clear button
+                        setState(() {});
                       },
                     ),
                     const SizedBox(height: 18),
@@ -264,7 +302,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     _PasswordField(controller: passwordController),
                     const SizedBox(height: 12),
 
-                    // Forgot Password placeholder (right-aligned)
+                    // Forgot Password
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton(
@@ -353,6 +391,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
 // ----------------------------- Blob Painter -----------------------------
 class BlobPainter extends CustomPainter {
   final Color color;
@@ -367,31 +406,26 @@ class BlobPainter extends CustomPainter {
 
     final path = Path();
     
-    // Create an organic blob shape
     path.moveTo(size.width * 0.5, size.height * 0.1);
     
-    // Top curve
     path.cubicTo(
       size.width * 0.8, size.height * 0.1,
       size.width * 0.9, size.height * 0.3,
       size.width * 0.85, size.height * 0.5,
     );
     
-    // Right curve
     path.cubicTo(
       size.width * 0.8, size.height * 0.7,
       size.width * 0.7, size.height * 0.85,
       size.width * 0.5, size.height * 0.9,
     );
     
-    // Bottom curve
     path.cubicTo(
       size.width * 0.3, size.height * 0.95,
       size.width * 0.15, size.height * 0.8,
       size.width * 0.1, size.height * 0.6,
     );
     
-    // Left curve
     path.cubicTo(
       size.width * 0.05, size.height * 0.4,
       size.width * 0.2, size.height * 0.15,
