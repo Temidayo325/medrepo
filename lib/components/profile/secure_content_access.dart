@@ -69,7 +69,6 @@ Future<void> showSecureViralPanel({
       final email = profileBox.get('email');
       
       if (email == null) {
-        print('No email found in profile');
         return false;
       }
       
@@ -86,7 +85,6 @@ Future<void> showSecureViralPanel({
       return response['status'] == true;
       
     } catch (e) {
-      print('Password verification error: $e');
       return false;
     }
   }
@@ -376,9 +374,7 @@ Future<void> showSecureViralPanel({
     
     try {
       availableBiometrics = await auth.getAvailableBiometrics();
-    } catch (e) {
-      print('Error getting biometrics: $e');
-    }
+    } catch (e) {}
     
     if (availableBiometrics.isNotEmpty) {
       // Has actual biometric (fingerprint/face) - use biometricOnly: true
@@ -404,9 +400,7 @@ Future<void> showSecureViralPanel({
           }
         }
         
-      } on PlatformException catch (e) {
-        print('Biometric auth error: ${e.code} - ${e.message}');
-        
+      } on PlatformException catch (e) {     
         // Handle specific errors
         if (e.code == 'NotAvailable' || e.code == 'NotEnrolled') {
           // Biometric not available, fallback to password
@@ -486,11 +480,9 @@ Future<void> showSecureViralPanel({
 
 } on PlatformException catch (e) {
   if (!context.mounted) return;
-  print('Platform exception: ${e.code} - ${e.message}');
   showErrorSnack(context, 'Authentication error: ${e.message ?? "Unknown error"}');
 } catch (e) {
   if (!context.mounted) return;
-  print('General error: $e');
   showErrorSnack(context, 'Access error: ${e.toString()}');
 }
 }

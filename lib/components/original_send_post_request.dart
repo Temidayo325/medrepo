@@ -13,8 +13,6 @@ Future<Map<String, dynamic>> sendDataToApi(
         'Accept': 'application/json',
         'Authorization': 'Bearer $token'
       };
-  print(data);
-
   http.Response response;
 
   if (method == "POST") {
@@ -43,7 +41,6 @@ Future<Map<String, dynamic>> sendDataToApi(
   }else {
     throw Exception("Unsupported HTTP method: $method");
   }
-  print(response.body);
   return jsonDecode(response.body);
 }
 

@@ -81,7 +81,6 @@ class IconTextCard extends StatelessWidget {
       // Cap at 100%
       return adherenceRate > 100 ? 100.0 : adherenceRate;
     } catch (e) {
-      print('Error calculating adherence: $e');
       return 0.0;
     }
   }

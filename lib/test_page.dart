@@ -139,7 +139,6 @@ class TestResultsPage extends StatelessWidget {
                               'Accept': 'application/json',
                               'Authorization': 'Bearer $token'
                             });
-                            print(response.body);
                             final responseBody =  jsonDecode(response.body);
                             if(responseBody['status']!= true)
                             {

@@ -179,35 +179,17 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
                       } else {
                         newMed['created_at'] = DateTime.now().toIso8601String();
                       }
-
-                      debugPrint('=== MEDICATION SAVE REQUEST ===');
-                      debugPrint('Is Creating: $isCreating');
-                      debugPrint('Existing Medication ID: ${widget.existingMedication?['id']}');
-                      debugPrint('Payload: $newMed');
-
                       try {
                         showLoadingDialog(context, message: "Saving medication ...");
 
                         final String url = isCreating
                             ? "https://medrepo.fineworksstudio.com/api/patient/medications"
                             : "https://medrepo.fineworksstudio.com/api/patient/medications/${widget.existingMedication?['id']}";
-
-                        debugPrint('URL: $url');
-                        debugPrint('Method: ${isCreating ? "POST" : "PUT"}');
-
                         final response = await sendDataToApi(
                           url,
                           newMed,
                           method: isCreating ? "POST" : "PUT",
                         );
-
-                        debugPrint('=== API RESPONSE ===');
-                        debugPrint('Status: ${response['status']}');
-                        debugPrint('Message: ${response['message']}');
-                        debugPrint('Response Data: ${response['data']}');
-                        debugPrint('Data ID: ${response['data']?['id']}');
-                        debugPrint('===================');
-
                         if (!mounted) return;
                         hideLoadingDialog(context);
 
@@ -218,30 +200,17 @@ class _NewMedicationSheetState extends State<NewMedicationSheet> {
 
                         // CRITICAL: Use the data returned from the server
                         final savedMedication = Map<String, dynamic>.from(response['data']);
-                        
-                        debugPrint('=== SAVING TO HIVE ===');
-                        debugPrint('Saved medication ID: ${savedMedication['id']}');
-                        debugPrint('Saved medication: $savedMedication');
-                        debugPrint('Index to save at: ${widget.index}');
-
                         showSuccessSnack(context, response['message']);
                         
                         // Pass the server response (with ID) to the parent
                         widget.onSave(savedMedication, index: widget.index);
                         
                         Navigator.pop(context);
-                      } catch (e, stackTrace) {
-                        debugPrint('=== ERROR ===');
-                        debugPrint('Error: $e');
-                        debugPrint('Stack trace: $stackTrace');
-                        debugPrint('=============');
-                        
-                        if (!mounted) return;
-                        
+                      } catch (e) {                      
+                        if (!mounted) return;                
                         try {
                           hideLoadingDialog(context);
                         } catch (_) {}
-                        
                         showErrorSnack(context, 'Failed to save medication: $e');
                       }
                     }

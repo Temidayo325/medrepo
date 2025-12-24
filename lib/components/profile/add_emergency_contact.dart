@@ -86,9 +86,7 @@ class _EmergencyContactsFlowState extends State<EmergencyContactsFlow>
         c2Email.text = c['email']?.toString() ?? '';
       }
 
-    } catch (e) {
-      debugPrint("EmergencyContactsFlow: failed to load saved contacts: $e");
-    }
+    } catch (e) { }
   }
 
 
@@ -300,9 +298,7 @@ class _EmergencyContactsFlowState extends State<EmergencyContactsFlow>
     try {
       final box = Hive.box('emergencyContacts');
       await box.put('contacts', contacts);
-    } catch (e) {
-      debugPrint("Failed to save contacts to Hive: $e");
-    }
+    } catch (e) { }
 
     // Prepare payload for API
     final payload = {'contacts': contacts};
@@ -318,7 +314,6 @@ class _EmergencyContactsFlowState extends State<EmergencyContactsFlow>
         "https://medrepo.fineworksstudio.com/api/patient/emergency-contacts/save-all",
         payload,
       );
-      print(response);
       hideLoadingDialog(context);
 
       // Expect response as {'status': true, ...} per earlier examples
@@ -338,9 +333,8 @@ class _EmergencyContactsFlowState extends State<EmergencyContactsFlow>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showSuccessSnack(rootContext, "Emergency contacts updated");
       });
-    } catch (e, st) {
+    } catch (e) {
       hideLoadingDialog(context);
-      debugPrint("EmergencyContactsFlow: API error: $e\n$st");
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showErrorSnack(rootContext, "Network error: $e");
       });

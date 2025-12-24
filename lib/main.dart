@@ -9,11 +9,12 @@ import 'components/notifications.dart';
 import  'register.dart';
 import 'components/medication/sync_medication_log.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'components/medication/medication_schedular.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   tz.initializeTimeZones();
-  await NotificationService.initialize();
+  
   // For iOS - configure action categories
   // if (Platform.isIOS) {
   //   await NotificationService.configureIOSNotificationCategories();
@@ -37,6 +38,9 @@ void main() async {
   //   await box.clear();
   //   print("Tests box cleared (debug mode)!");
   // }
+  await NotificationService.initialize();
+  await NotificationService.checkPendingNotifications();
+  await MedicationScheduler.refreshAllSchedules();
   setupDioInterceptor();
   runApp(MyApp());
 }

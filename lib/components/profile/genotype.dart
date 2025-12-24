@@ -102,7 +102,6 @@ class _MedicalInfoCardState extends State<MedicalInfoCard> {
       }
 
     } catch (e) {
-      print('Error refreshing medical data: $e');
       if (mounted) {
         showErrorSnack(context, 'Failed to refresh medical info');
       }

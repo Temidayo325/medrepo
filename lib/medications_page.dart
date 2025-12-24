@@ -261,13 +261,11 @@ class _MedicationPageState extends State<MedicationPage> {
       });
 
       // 6. Send api request
-      print(med);
       final response = await sendDataToApi(
         'https://medrepo.fineworksstudio.com/api/patient/medications',
         {'id': med['id']}, // The function will append this to URL
         method: 'DELETE',
       );
-      print(response);
       if(response['status'] == true && response['status_code'] < 400)
       {
         // 7. Show success message
@@ -506,6 +504,24 @@ class _MedicationPageState extends State<MedicationPage> {
     };
   }
   
+  // Future<void> _rescheduleAllMedications() async { 
+  //   for (var med in medications) {
+  //     final days = _parseDurationToDays(med['duration_of_therapy']);
+  //     final startDate = DateTime.parse(med['created_at']);
+  //     final endDate = startDate.add(Duration(days: days));
+  //     // Only reschedule if medication is still active
+  //     if (DateTime.now().isBefore(endDate)) {
+  //       // Cancel existing notifications first
+  //       final int baseAlarmId = med['id'].toString().hashCode;
+  //       for (int i = 0; i < 100; i++) {
+  //         await NotificationService.cancelNotification(baseAlarmId + i);
+  //       } 
+  //       _scheduleReminders(med);
+  //     } else {}
+  //   }
+  //   await NotificationService.checkPendingNotifications();
+  // }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

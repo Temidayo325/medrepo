@@ -8,7 +8,7 @@ import 'components/send_post_request.dart';
 import 'components/snackbar/error.dart';
 import 'components/snackbar/success.dart';
 import 'components/animated_logo.dart';
-
+import 'components/notifications.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -30,7 +30,75 @@ class _LoginScreenState extends State<LoginScreen> {
     super.initState();
     _loadSavedEmail();
   }
+  // Add this helper method to _LoginScreenState
+  Future<void> _rescheduleNotificationsForMedication(Map<String, dynamic> med) async {
+    try {
+      final int totalDays = _parseDurationToDays(med['duration_of_therapy']);
+      final int timesPerDay = _parseFrequencyToInt(med['frequency']);
+      final String medicationId = med['id'].toString();
+      final int baseAlarmId = medicationId.hashCode;
+      
+      final DateTime startDate = DateTime.parse(med['created_at']);
+      final DateTime endDate = startDate.add(Duration(days: totalDays));
+      
+      // Only reschedule if medication is still active
+      if (DateTime.now().isBefore(endDate)) {
+        int notificationCount = 0;
+        
+        for (int d = 0; d < totalDays; d++) {
+          for (int t = 0; t < timesPerDay; t++) {
+            if (notificationCount >= 100) break;
+            
+            final int hourOffset = (t * (24 ~/ timesPerDay));
+            DateTime scheduledTime = startDate.add(
+              Duration(days: d, hours: hourOffset)
+            );
+            
+            // Only schedule future notifications
+            if (scheduledTime.isAfter(DateTime.now())) {
+              await NotificationService.scheduleMedicationReminder(
+                id: baseAlarmId + notificationCount,
+                medicationId: medicationId,
+                medicationName: med['name'],
+                scheduledTime: scheduledTime,
+                dosage: med['dosage_strength'],
+              );
+            }
+            notificationCount++;
+          }
+        }
+      }
+    } catch (e) { }
+  }
 
+  int _parseDurationToDays(String duration) {
+    final lower = duration.toLowerCase();
+    final match = RegExp(r'\d+').firstMatch(duration);
+    if (match == null) return 7;
+    
+    final number = int.tryParse(match.group(0)!) ?? 7;
+    
+    if (lower.contains('week')) return number * 7;
+    if (lower.contains('month')) return number * 30;
+    if (lower.contains('year')) return number * 365;
+    
+    return number;
+  }
+
+  int _parseFrequencyToInt(String frequency) {
+    final lower = frequency.toLowerCase();
+    if (lower.contains('once')) return 1;
+    if (lower.contains('twice')) return 2;
+    if (lower.contains('thrice')) return 3;
+    
+    final match = RegExp(r'\d+').firstMatch(frequency);
+    if (match != null) {
+      return int.tryParse(match.group(0)!) ?? 1;
+    }
+    
+    return 1;
+  }
+  
   /// Load saved email from Hive if available
   Future<void> _loadSavedEmail() async {
     try {
@@ -42,9 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
           emailController.text = savedEmail.toString();
         });
       }
-    } catch (e) {
-      print('Error loading saved email: $e');
-    }
+    } catch (e) { }
   }
 
   @override
@@ -106,6 +172,14 @@ class _LoginScreenState extends State<LoginScreen> {
             }
           }
 
+          try {
+              for (var i = 0; i < medicationsBox.length; i++) {
+                final med = medicationsBox.getAt(i);
+                if (med != null) {
+                  await _rescheduleNotificationsForMedication(med);
+                }
+              }
+            } catch (e) {}
           // 3. Handle Routine Tests
           final testsBox = Hive.box('tests');
           await testsBox.clear(); // Clear old data

@@ -9,7 +9,7 @@ import 'send_post_request.dart';
 import 'profile/profile_picure.dart';
 import '../about.dart';
 import '../contact.dart';
-
+import 'notifications.dart';
 
 Future<bool> showConfirmationDialog({
   required BuildContext context,
@@ -109,6 +109,9 @@ class LogoutService {
     final tokenBox = Hive.box('token');
     final token = tokenBox.get('api_token');
 
+    try {
+      await NotificationService.cancelAllNotifications();
+    } catch (e) {}
     // 2. API logout (runs only if token exists)
     if (token != null) {
       try {

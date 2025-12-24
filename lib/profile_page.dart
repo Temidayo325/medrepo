@@ -21,7 +21,6 @@ class ProfilePage extends StatelessWidget {
       final heightInMeters = h / 100;
       return w / (heightInMeters * heightInMeters);
     } catch (e) {
-      debugPrint('BMI calculation error: $e');
       return null;
     }
   }
@@ -56,7 +55,6 @@ class ProfilePage extends StatelessWidget {
       patientProfileBox = Hive.box('patientProfile');
       emergencyContactsBox = Hive.box('emergencyContacts');
     } catch (e) {
-      debugPrint('Error opening Hive boxes: $e');
       return Scaffold(
         backgroundColor: AppColors.lightBackground,
         body: Center(
@@ -118,9 +116,7 @@ class ProfilePage extends StatelessWidget {
               }
             })
             ..removeWhere((key, value) => key == 'id' || key == 'identifier' || key == 'api_token');
-          } catch (e) {
-            debugPrint('Error reading profile box: $e');
-          }
+          } catch (e) {}
 
           final hasProfileData = _hasData(profile, ['name', 'email', 'phone']);
 
@@ -206,9 +202,7 @@ class ProfilePage extends StatelessWidget {
                       Map<String, dynamic> patientProfile = {};
                       try {
                         patientProfile = Map<String, dynamic>.from(box.toMap());
-                      } catch (e) {
-                        debugPrint('Error reading patient profile box: $e');
-                      }
+                      } catch (e) {}
 
                       final hasPatientProfile = _hasData(
                         patientProfile,
@@ -314,9 +308,7 @@ class ProfilePage extends StatelessWidget {
                                 .map((m) => m.map((k, v) => MapEntry(k.toString(), v)))
                                 .toList();
                           }
-                        } catch (e) {
-                          debugPrint('Error reading emergency contacts: $e');
-                        }
+                        } catch (e) {}
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -550,7 +542,6 @@ class ProfilePage extends StatelessWidget {
                         );
                       }
                     } catch (e) {
-                      debugPrint('Error updating profile: $e');
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

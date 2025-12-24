@@ -260,4 +260,8 @@ class NotificationService {
   static Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
   }
+
+  static Future<void> checkPendingNotifications() async {
+    await _notifications.pendingNotificationRequests();
+  }
 }
