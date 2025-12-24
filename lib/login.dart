@@ -59,10 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response['status_code'] == 200 || response['statusCode'] == 201) {
         
         if (response['status'] == true) {
-          final userData = response['patient'];
-          final token = response['token'];
-          
-          // Store user data in Hive
+          final userData = response['patient'];          
+          /// 1. Store basic profile data
           final profileBox = Hive.box('profile');
           await profileBox.putAll({
             'id': userData['id'],
@@ -74,10 +72,31 @@ class _LoginScreenState extends State<LoginScreen> {
             'identifier': userData['identifier'],
             'age': userData['age']
           });
-          
-          // Store token securely
+
+          // 2. Handle Medications
+          final medicationsBox = Hive.box('medications');
+          await medicationsBox.clear(); // Clear old data before saving new sync
+
+          if (userData['medications'] != null) {
+            for (var med in userData['medications']) {
+              // We use the 'id' from the database as the key for easy lookup/update
+              await medicationsBox.put(med['id'], med);
+            }
+          }
+
+          // 3. Handle Routine Tests
+          final testsBox = Hive.box('tests');
+          await testsBox.clear(); // Clear old data
+
+          if (userData['routine_tests'] != null) {
+            for (var test in userData['routine_tests']) {
+              await testsBox.put(test['id'], test);
+            }
+          }
+
+          // 4. Store token securely
           final tokenBox = Hive.box('token');
-          await tokenBox.put('api_token', token);
+          await tokenBox.put('api_token', response['token']);
 
           // Mark as logged in
           final authBox = Hive.box('register');
@@ -115,8 +134,6 @@ class _LoginScreenState extends State<LoginScreen> {
           if (err['data'] != null) message = err['data'];
           if (err['message'] != null) message = err['message'];
         } catch (_) {}
-        
-        debugPrint('Server error: $message');
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

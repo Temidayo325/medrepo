@@ -198,16 +198,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           );
         }
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       if (!mounted) return;
       hideLoadingDialog(context);
        // Detailed logging
-      print('=== Registration Error Debug ===');
-      print('Error Type: ${e.runtimeType}');
-      print('Error: $e');
-      print('StackTrace: $stackTrace');
-
-      print('=== End Debug ===');
       showErrorSnack(context, 'Network error. Please try again.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -324,14 +318,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Don't have an account? ",
+                  "Already have an account? ",
                   style: TextStyle(color: AppColors.darkGreen),
                 ),
                 TextButton(
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => RegistrationScreen()),
+                      MaterialPageRoute(builder: (_) => LoginScreen()),
                     );
                   },
                   child: Text(

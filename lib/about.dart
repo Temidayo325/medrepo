@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+// import 'components/notifications.dart';
 
 class AboutUsPage extends StatelessWidget {
-  const AboutUsPage({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {

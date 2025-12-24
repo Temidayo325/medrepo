@@ -1,64 +1,60 @@
 import 'package:flutter/material.dart';
 import '../../colors.dart';
 
-class StatusSelector extends StatefulWidget {
-  final Function(String) onStatusSelected;
+// 1. Define an Enum for safety
+enum MedicationStatus { all, active, completed }
 
-  StatusSelector({required this.onStatusSelected});
+class StatusSelector extends StatelessWidget {
+  final MedicationStatus selectedStatus;
+  
+  final Function(MedicationStatus) onStatusSelected;
 
-  @override
-  _StatusSelectorState createState() => _StatusSelectorState();
-}
-
-class _StatusSelectorState extends State<StatusSelector> {
-  final List<String> statuses = ['All', 'Active', 'Completed'];
-  int selectedIndex = 0;
+  StatusSelector({
+    required this.selectedStatus,
+    required this.onStatusSelected,
+  });
+  
+  // Helper to convert Enum to display string
+  String _getStatusName(MedicationStatus status) {
+    switch (status) {
+      case MedicationStatus.all: return 'All';
+      case MedicationStatus.active: return 'Active';
+      case MedicationStatus.completed: return 'Completed';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 70,
+      height: 65,
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 20),
-      alignment: Alignment.center,
-      color: Colors.white, // fully transparent background
+      color: Colors.white,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: 15),
         child: Row(
-          children: List.generate(statuses.length, (index) {
-            final isSelected = selectedIndex == index;
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  selectedIndex = index;
-                });
-                widget.onStatusSelected(statuses[index]);
-              },
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 10),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                child: Text(
-                  statuses[index],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: isSelected ? 20 : 20,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    color: isSelected ? AppColors.primaryGreen : AppColors.primaryGreen,
-                    shadows: isSelected
-                        ? [
-                            Shadow(
-                              color: Colors.white,
-                              offset: Offset(0, 1),
-                              blurRadius: 1,
-                            )
-                          ]
-                        : [],
-                  ),
+          children: MedicationStatus.values.map((status) {
+            final isSelected = selectedStatus == status;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              child: ChoiceChip(
+                label: Text(_getStatusName(status)),
+                selected: isSelected,
+                onSelected: (_) => onStatusSelected(status),
+                selectedColor: AppColors.primaryGreen,
+                backgroundColor: AppColors.mintGreen,
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.deepGreen,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                // Removes default checkmark for a cleaner look
+                showCheckmark: false, 
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
             );
-          }),
+          }).toList(),
         ),
       ),
     );
