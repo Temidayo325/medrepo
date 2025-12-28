@@ -10,6 +10,8 @@ import 'profile/profile_picure.dart';
 import '../about.dart';
 import '../contact.dart';
 import 'notifications.dart';
+import 'medication/debug_notifications.dart';
+
 
 Future<bool> showConfirmationDialog({
   required BuildContext context,
@@ -257,6 +259,16 @@ class YourSidebarComponent extends StatelessWidget {
       children: [
         // _menuTile(context,
             // icon: Icons.home, title: 'Home', onTap: () => Navigator.pop(context)),
+        // _menuTile(context,
+        //     icon: Icons.help_outline,
+        //     title: 'Debug notifications',
+        //     onTap: () {
+        //       Navigator.pop(context);
+        //       Navigator.push(
+        //         context,
+        //         MaterialPageRoute(builder: (_) => NotificationDebugScreen()),
+        //       );
+        //     }),
         _menuTile(context,
             icon: Icons.book,
             title: 'Symptoms Diary',

@@ -92,4 +92,12 @@ class MedicationScheduler {
 
     return 1;
   }
+
+  static int frequencyToInt(String frequency) {
+    return _parseFrequencyToInt(frequency);
+  }
+
+  static int durationToDays(String duration) {
+    return _parseDurationToDays(duration);
+  }
 }

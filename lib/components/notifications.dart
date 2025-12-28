@@ -2,6 +2,52 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive/hive.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'medication/sync_medication_log.dart';
+// import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
+
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse response) async {
+  print('🔔 BACKGROUND Action: ${response.actionId}');
+  
+  if (response.actionId == 'taken' && response.payload != null) {
+    // 1. Initialize Hive for the background process
+    final directory = await getApplicationDocumentsDirectory();
+    Hive.init(directory.path);
+
+    // 2. Open the box specifically for this background isolate
+    final logBox = await Hive.openBox('medication_logs');
+
+    // 3. Parse payload exactly like your _handleNotificationAction
+    final parts = response.payload!.split('|');
+    if (parts.length < 3) return;
+
+    final medicationId = parts[0];
+    final medicationName = parts[1];
+    final scheduledTime = parts[2];
+
+    final timestamp = DateTime.now().toIso8601String();
+    final localLogId = 'log_${DateTime.now().millisecondsSinceEpoch}_$medicationId';
+
+    // 4. Construct the log map using your exact schema
+    final log = {
+      'medication_id': medicationId,
+      'local_log_id': localLogId,
+      'medication_name': medicationName,
+      'scheduled_at': scheduledTime,
+      'taken_at': timestamp,
+      'status': 'taken',
+      'synced': false, // Important for your SyncService to find it later
+    };
+
+    await logBox.add(log);
+    print('✅ Background Hive Log Saved: $localLogId');
+    
+    // Note: We don't call SyncService here. Networking in background isolates 
+    // is often killed by the OS. It's safer to sync when the app restarts.
+  }
+}
+
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
@@ -10,7 +56,7 @@ class NotificationService {
   static final SyncService _syncService = SyncService();
 
   static Future<void> initialize() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings('@mipmap/launcher_icon');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -24,7 +70,8 @@ class NotificationService {
 
     await _notifications.initialize(
       initSettings,
-      onDidReceiveNotificationResponse: _handleNotificationAction,
+      onDidReceiveNotificationResponse: _handleNotificationAction, // Foreground
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground, // Background
     );
 
     // Request permissions for Android 13+
@@ -34,14 +81,12 @@ class NotificationService {
         ?.requestNotificationsPermission();
   }
 
-  static Future<void> _handleNotificationAction(
-      NotificationResponse response) async {
+  static Future<void> _handleNotificationAction(NotificationResponse response) async {
     final payload = response.payload;
     final actionId = response.actionId;
 
     if (payload == null) return;
 
-    // Parse payload to get medication details
     final parts = payload.split('|');
     if (parts.length < 3) return;
 
@@ -50,64 +95,117 @@ class NotificationService {
     final scheduledTime = parts[2];
 
     if (actionId == 'taken') {
-      await _markAsTaken(medicationId, medicationName, scheduledTime);
-    } else if (actionId == 'snooze') {
-      await _snoozeNotification(medicationId, medicationName, scheduledTime);
-    }
+            
+      if (actionId == 'taken') {
+        await _markAsTaken(medicationId, medicationName, scheduledTime);
+        await _syncService.syncLogs(); // This pushes it to the server immediately in foreground
+      }
+      print('🚀 Foreground Action: Sync triggered for $medicationName');
+    } 
+    // ... rest of your snooze logic
   }
-
+ 
   static Future<void> _markAsTaken(
       String medicationId, String medicationName, String scheduledTime) async {
     try {
-      final logBox = Hive.box('medication_logs');
+      print('🔍 Starting _markAsTaken...');
+      
+      // Ensure Hive box is open
+      Box logBox;
+      if (Hive.isBoxOpen('medication_logs')) {
+        logBox = Hive.box('medication_logs');
+        print('✓ Log box already open');
+      } else {
+        print('📦 Opening log box...');
+        logBox = await Hive.openBox('medication_logs');
+        print('✓ Log box opened');
+      }
+      
       final timestamp = DateTime.now().toIso8601String();
-
+      final localLogId = 'log_${DateTime.now().millisecondsSinceEpoch}_$medicationId';
+      
+      print('🆔 Generated local_log_id: $localLogId');
+      
       // 1. Log locally in Hive
       final log = {
         'medication_id': medicationId,
+        'local_log_id': localLogId,
         'medication_name': medicationName,
-        'scheduled_time': scheduledTime,
+        'scheduled_at': scheduledTime,
         'taken_at': timestamp,
         'status': 'taken',
+        'synced': false,
       };
 
+      print('💾 Saving to Hive: $log');
       await logBox.add(log);
+      print('✓ Saved to Hive. Total logs: ${logBox.length}');
 
       // 2. Try to sync immediately
       try {
+        print('🔄 Attempting to sync...');
         await _syncService.syncLogs();
+        print('✓ Sync completed');
       } catch (e) {
         // Sync failed, but data is saved locally - will sync later
-        print('Sync failed, will retry later: $e');
+        print('⚠️ Sync failed, will retry later: $e');
       }
 
       // 3. Show confirmation notification
       await _showConfirmationNotification(medicationName);
-    } catch (e) {
-      print('Error marking medication as taken: $e');
-    }
-  }
-
-  static Future<void> _snoozeNotification(
-      String medicationId, String medicationName, String scheduledTime) async {
-    try {
-      // Schedule notification for 10 minutes from now
-      final snoozeTime = DateTime.now().add(const Duration(minutes: 10));
+      print('✓ Confirmation notification shown');
       
-      await scheduleMedicationReminder(
-        id: int.parse(medicationId) + 10000, // Different ID to avoid conflicts
-        medicationId: medicationId,
-        medicationName: medicationName,
-        scheduledTime: snoozeTime,
-        isSnoozed: true,
-      );
-
-      // Show snooze confirmation
-      await _showSnoozeConfirmation(medicationName);
-    } catch (e) {
-      print('Error snoozing notification: $e');
+    } catch (e, stackTrace) {
+      print('❌ Error marking medication as taken: $e');
+      print('Stack trace: $stackTrace');
     }
   }
+
+  static Future<void> markAsTaken(String medicationId, String medicationName, String scheduledTime) {
+    return _markAsTaken(medicationId, medicationName, scheduledTime);
+  }
+
+  // static Future<void> _snoozeNotification(
+  //     String medicationId, String medicationName, String scheduledTime) async {
+  //   try {
+  //     print('⏰ Starting snooze...');
+      
+  //     // Parse medication ID safely
+  //     int notificationId;
+  //     try {
+  //       // If medicationId starts with 'local_', extract the number part
+  //       if (medicationId.startsWith('local_')) {
+  //         // Use hashCode instead of parsing
+  //         notificationId = medicationId.hashCode.abs() % 1000000 + 10000;
+  //       } else {
+  //         notificationId = int.parse(medicationId) + 10000;
+  //       }
+  //     } catch (e) {
+  //       // If parsing fails, use hashCode
+  //       notificationId = medicationId.hashCode.abs() % 1000000 + 10000;
+  //     }
+      
+  //     print('📱 Using notification ID: $notificationId');
+      
+  //     // Schedule notification for 10 minutes from now
+  //     final snoozeTime = DateTime.now().add(const Duration(minutes: 10));
+      
+  //     await scheduleMedicationReminder(
+  //       id: notificationId,
+  //       medicationId: medicationId,
+  //       medicationName: medicationName,
+  //       scheduledTime: snoozeTime,
+  //       isSnoozed: true,
+  //     );
+
+  //     // Show snooze confirmation
+  //     await _showSnoozeConfirmation(medicationName);
+  //     print('✓ Snooze completed');
+  //   } catch (e, stackTrace) {
+  //     print('❌ Error snoozing notification: $e');
+  //     print('Stack trace: $stackTrace');
+  //   }
+  // }
 
   static Future<void> _showConfirmationNotification(String medicationName) async {
     const androidDetails = AndroidNotificationDetails(
@@ -135,31 +233,31 @@ class NotificationService {
     );
   }
 
-  static Future<void> _showSnoozeConfirmation(String medicationName) async {
-    const androidDetails = AndroidNotificationDetails(
-      'snooze_channel',
-      'Snooze Confirmation',
-      channelDescription: 'Medication snooze confirmations',
-      importance: Importance.low,
-      priority: Priority.low,
-      autoCancel: true,
-      timeoutAfter: 3000,
-    );
+  // static Future<void> _showSnoozeConfirmation(String medicationName) async {
+  //   const androidDetails = AndroidNotificationDetails(
+  //     'snooze_channel',
+  //     'Snooze Confirmation',
+  //     channelDescription: 'Medication snooze confirmations',
+  //     importance: Importance.low,
+  //     priority: Priority.low,
+  //     autoCancel: true,
+  //     timeoutAfter: 3000,
+  //   );
 
-    const iosDetails = DarwinNotificationDetails();
+  //   const iosDetails = DarwinNotificationDetails();
 
-    const notificationDetails = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
+  //   const notificationDetails = NotificationDetails(
+  //     android: androidDetails,
+  //     iOS: iosDetails,
+  //   );
 
-    await _notifications.show(
-      999998,
-      '⏰ Reminder Snoozed',
-      'Will remind you about $medicationName in 10 minutes',
-      notificationDetails,
-    );
-  }
+  //   await _notifications.show(
+  //     999998,
+  //     '⏰ Reminder Snoozed',
+  //     'Will remind you about $medicationName in 10 minutes',
+  //     notificationDetails,
+  //   );
+  // }
 
   static Future<void> scheduleMedicationReminder({
     required int id,
@@ -223,33 +321,6 @@ class NotificationService {
       payload: payload,
     );
   }
-
-  // For iOS - you need to configure categories with actions
-  // static Future<void> configureIOSNotificationCategories() async {
-  //   final List<DarwinNotificationCategory> categories = [
-  //     DarwinNotificationCategory(
-  //       'medication_reminder',
-  //       actions: [
-  //         DarwinNotificationAction.plain(
-  //           'taken',
-  //           '✓ Taken',
-  //           options: <DarwinNotificationActionOption>{
-  //             DarwinNotificationActionOption.destructive,
-  //           },
-  //         ),
-  //         DarwinNotificationAction.plain(
-  //           'snooze',
-  //           '⏰ Snooze 10min',
-  //         ),
-  //       ],
-  //     ),
-  //   ];
-
-    // await _notifications
-    //     .resolvePlatformSpecificImplementation
-    //         <IOSFlutterLocalNotificationsPlugin>()
-    //     ?.setNotificationCategories(categories);
-  // }
 
   // Cancel a specific notification
   static Future<void> cancelNotification(int id) async {

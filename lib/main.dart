@@ -10,7 +10,15 @@ import  'register.dart';
 import 'components/medication/sync_medication_log.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'components/medication/medication_schedular.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+
+
+@pragma('vm:entry-point')
+void notificationTapBackground(NotificationResponse notificationResponse) {
+  print('🔔 Background notification tap: ${notificationResponse.actionId}');
+  // This will be called when app is in background/terminated
+}
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   tz.initializeTimeZones();
@@ -31,7 +39,7 @@ void main() async {
   // Hive.box('auth').put('isRegistered', true);
   await Hive.openBox('token');
   await Hive.openBox('register');
-  // final box = await Hive.openBox('symptoms'); // box to store user profile
+  // final box = await Hive.openBox('medication_logs'); // box to store user profile
 
   // Only clear the box during development
   // if (kDebugMode) {

@@ -3,6 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'components/app_title.dart';
 import 'colors.dart';
+import 'components/medication/sync_medication_log.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,7 +12,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   
   ValueNotifier<int?> selectedHealthCard = ValueNotifier(null);
   // 🩺 Helper: get latest test by name
@@ -32,6 +33,28 @@ class _HomePageState extends State<HomePage> {
         DateTime.parse(b['timestamp']).compareTo(DateTime.parse(a['timestamp'])));
 
     return filtered.first;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Start listening to app state changes
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // This triggers when the app comes from background to foreground
+    if (state == AppLifecycleState.resumed) {
+      print('🔄 App Resumed: Checking for unsynced logs...');
+      SyncService().syncLogs();
+    }
   }
 
   @override

@@ -51,6 +51,20 @@ class IconTextCard extends StatelessWidget {
     );
   }
 
+  // bool _isTakenToday() {
+  //   final logBox = Hive.box('medication_logs');
+  //   final now = DateTime.now();
+    
+  //   return logBox.values.any((log) {
+  //     if (log['medication_id'] != medicationId) return false;
+      
+  //     final takenAt = DateTime.parse(log['taken_at']);
+  //     return takenAt.year == now.year && 
+  //           takenAt.month == now.month && 
+  //           takenAt.day == now.day;
+  //   });
+  // }
+
   // Calculate adherence rate based on logs in Hive
   double _calculateAdherenceRate() {
     try {
@@ -125,7 +139,8 @@ class IconTextCard extends StatelessWidget {
       valueListenable: Hive.box('medication_logs').listenable(),
       builder: (context, Box box, _) {
         final adherenceRate = _calculateAdherenceRate();
-        
+        // final isDoneToday = _isTakenToday();
+
         return InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(12),
