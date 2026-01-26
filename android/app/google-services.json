@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "878703156302",
+    "project_id": "booming-bonito-485111-m0",
+    "storage_bucket": "booming-bonito-485111-m0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:878703156302:android:75b98432a9f77733f3371f",
+        "android_client_info": {
+          "package_name": "com.example.medrepo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBF3Az89cjQ0uaTVByLEXbJYkPhYXF2Ghc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

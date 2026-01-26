@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
@@ -361,25 +362,33 @@ Future<void> showSecureViralPanel({
   
   try {
   // Step 1: Check security availability
-  final LocalAuthentication auth = LocalAuthentication();
-  final bool canCheckBiometrics = await auth.canCheckBiometrics;
-  final bool isDeviceSupported = await auth.isDeviceSupported();
-
-  final bool hasSecurity = canCheckBiometrics || isDeviceSupported;
+  LocalAuthentication? auth;
+  bool hasSecurity = false;
   bool proceedToFetch = false;
+
+  if (!kIsWeb) {
+    // Only run biometric checks on mobile platforms
+     auth = LocalAuthentication();
+    final bool canCheckBiometrics = await auth.canCheckBiometrics;
+    final bool isDeviceSupported = await auth.isDeviceSupported();
+    
+    hasSecurity = canCheckBiometrics || isDeviceSupported;
+  } else {
+    hasSecurity = false; // This will trigger your password fallback
+  }
   
   if (hasSecurity) {
     // Device has security - Check what types are available
     List<BiometricType> availableBiometrics = [];
     
     try {
-      availableBiometrics = await auth.getAvailableBiometrics();
+      availableBiometrics = await auth!.getAvailableBiometrics();
     } catch (e) {}
     
     if (availableBiometrics.isNotEmpty) {
       // Has actual biometric (fingerprint/face) - use biometricOnly: true
       try {
-        final bool didAuthenticate = await auth.authenticate(
+        final bool didAuthenticate = await auth!.authenticate(
           localizedReason: 'Authenticate to access sensitive viral panel results',
           options: const AuthenticationOptions(
             stickyAuth: true,

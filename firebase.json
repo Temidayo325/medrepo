@@ -1,0 +1,39 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "booming-bonito-485111-m0",
+          "appId": "1:878703156302:android:75b98432a9f77733f3371f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "booming-bonito-485111-m0",
+          "configurations": {
+            "android": "1:878703156302:android:75b98432a9f77733f3371f",
+            "ios": "1:878703156302:ios:77be5fade79cfcfff3371f",
+            "macos": "1:878703156302:ios:77be5fade79cfcfff3371f",
+            "web": "1:878703156302:web:d1677f2b27a44de7f3371f",
+            "windows": "1:878703156302:web:f74b37d0bcf04bc3f3371f"
+          }
+        }
+      }
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

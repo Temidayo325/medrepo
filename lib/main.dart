@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show Platform;
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'login.dart';
 import 'components/dio_request_instance.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'components/notifications.dart';
 // import 'package:timezone/timezone.dart' as tz;
-// import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import  'register.dart';
 import 'components/medication/sync_medication_log.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'components/medication/medication_schedular.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 
 @pragma('vm:entry-point')
@@ -46,10 +49,16 @@ void main() async {
   //   await box.clear();
   //   print("Tests box cleared (debug mode)!");
   // }
+if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
   await NotificationService.initialize();
   await NotificationService.checkPendingNotifications();
+}
   await MedicationScheduler.refreshAllSchedules();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   setupDioInterceptor();
+  setUrlStrategy(PathUrlStrategy());
   runApp(MyApp());
 }
 
