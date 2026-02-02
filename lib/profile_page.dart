@@ -266,6 +266,16 @@ class ProfilePage extends StatelessWidget {
                                           'Allergies',
                                           _safeString(patientProfile['allergies']),
                                         ),
+                                      if (_safeString(patientProfile['family_history']) != '—') ...[
+                                         Divider(height: 24),
+                                        _InfoRow(
+                                          Icons.local_hospital,
+                                          'Family history',
+                                          _safeString(patientProfile['family_history']),
+                                        ),
+                                        if (_safeString(patientProfile['family_history']) != '—')
+                                          Divider(height: 24),
+                                      ],
                                     ],
                                   )
                                 : Center(

@@ -3,6 +3,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../colors.dart';
 import '../login.dart';
 import '../symptoms_diary.dart';
+import '../privacy.dart';
+import '../termsandcondition.dart';
 import 'snackbar/error.dart';
 import 'snackbar/success.dart';
 import 'send_post_request.dart';
@@ -10,7 +12,7 @@ import 'profile/profile_picure.dart';
 import '../about.dart';
 import '../contact.dart';
 import 'notifications.dart';
-import 'medication/debug_notifications.dart';
+// import 'medication/debug_notifications.dart';
 
 
 Future<bool> showConfirmationDialog({
@@ -287,6 +289,26 @@ class YourSidebarComponent extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => ContactUsPage()),
+              );
+            }),
+        _menuTile(context,
+            icon: Icons.privacy_tip,
+            title: 'Privacy policy',
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => PrivacyPolicyPage()),
+              );
+            }),
+        _menuTile(context,
+            icon: Icons.description,
+            title: 'Terms and constions',
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => TermsAndConditionsPage()),
               );
             }),
         _menuTile(context,

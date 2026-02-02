@@ -21,7 +21,8 @@ class EditHealthInfoDialog {
         text: currentData['chronic_conditions'] ?? '');
     final allergiesController = TextEditingController(
         text: currentData['allergies'] ?? '');
-
+    final familyHistoryController = TextEditingController(
+        text: currentData['family_history'] ?? '');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -120,6 +121,23 @@ class EditHealthInfoDialog {
                 ),
               ),
 
+              SizedBox(height: 16),
+
+              TextField(
+                controller: familyHistoryController,
+                cursorColor: AppColors.darkGreen,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  labelText: 'Family History',
+                  labelStyle: TextStyle(color: AppColors.darkGreen),
+                  hintText: 'e.g., Hypertension, Diabetes, Kidney Disease',
+                  prefixIcon: Icon(Icons.warning_amber_rounded, color: AppColors.darkGreen),
+                  filled: true,
+                  fillColor: AppColors.primaryGreen.withValues(alpha: 0.08),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                ),
+              ),
+              
               SizedBox(height: 24),
 
               ElevatedButton(
@@ -135,6 +153,7 @@ class EditHealthInfoDialog {
                     'weight': double.tryParse(weightController.text) ?? 0,
                     'chronic_conditions': conditionsController.text,
                     'allergies': allergiesController.text,
+                    'family_history': familyHistoryController.text,
                   };
 
                   showLoadingDialog(

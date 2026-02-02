@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+import 'web/url_strategy.dart';
+// import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'login.dart';
 import 'components/dio_request_instance.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -58,7 +59,7 @@ if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   setupDioInterceptor();
-  setUrlStrategy(PathUrlStrategy());
+  configureUrlStrategy();
   runApp(MyApp());
 }
 
